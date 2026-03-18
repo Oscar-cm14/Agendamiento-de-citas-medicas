@@ -1,0 +1,27 @@
+You are an expert in Software Architecture and Spring Boot. When generating, modifying, or analyzing code for this project, you MUST adhere strictly to the following rules:
+
+# 1. Architecture
+- **Style:** Modular Monolith.
+- **Maven Modules:** The codebase must be separated into the following modules: `shared`, `users`, `therapists`, `appointments`, and `app-main`.
+- **Dependency Rule:** Absolutely no circular dependencies are allowed between these modules.
+
+# 2. Java 25 Features
+- **Data Transfer Objects (DTOs):** Implement all DTOs as Java `record`s to ensure immutability.
+- **Hierarchies:** Use `sealed` classes and interfaces for restricted hierarchies, specifically for the `Person` (`Persona`) hierarchy.
+- **Concurrency:** Utilize Virtual Threads for concurrent processing.
+
+# 3. Language Convention
+- **English Only:** All code entities (classes, interfaces, methods, variables) and all comments (including Javadoc) MUST be written in English. No exceptions.
+
+# 4. Documentation
+- **Javadoc:** Every `public` method in the project must be documented with detailed Javadoc, explaining what the method does, its parameters, return values, and thrown exceptions.
+
+# 5. Persistence
+- **Technology Stack:** Use Spring Data JPA with PostgreSQL as the database.
+- **Entity Inheritance:** Entities following the `Person` (`Persona`) model must implement the Joined Table inheritance strategy (e.g., using `@Inheritance(strategy = InheritanceType.JOINED)`).
+
+# 6. Package Structure
+- Each module MUST exactly follow this package structure:
+  - `com.clinica.[module].domain` (Core business logic, entities, domain services, ports/interfaces)
+  - `com.clinica.[module].application` (Use cases, application services)
+  - `com.clinica.[module].infrastructure` (Adapters: REST controllers, JPA repositories, configurations, external APIs)
