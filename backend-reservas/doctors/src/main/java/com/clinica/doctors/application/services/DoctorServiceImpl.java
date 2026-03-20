@@ -3,6 +3,8 @@ package com.clinica.doctors.application.services;
 import com.clinica.shared.dto.DoctorRegistrationRequest;
 import com.clinica.shared.dto.DoctorResponse;
 import com.clinica.shared.domain.UserRole;
+import com.clinica.shared.domain.exceptions.IdentificationAlreadyExistsException;
+import com.clinica.shared.domain.exceptions.UsernameAlreadyExistsException;
 import com.clinica.users.domain.entities.Doctor;
 import com.clinica.users.domain.entities.User;
 import com.clinica.users.infrastructure.repositories.DoctorRepository;
@@ -41,7 +43,8 @@ public class DoctorServiceImpl implements DoctorService {
      *
      * @param request Data containing the doctor details.
      * @return A summary record of the registered doctor.
-     * @throws IllegalArgumentException if the username or identification already exists.
+     * @throws UsernameAlreadyExistsException if the username already exists.
+     * @throws IdentificationAlreadyExistsException if the identification already exists.
      */
     @Override
     @Transactional
@@ -49,10 +52,10 @@ public class DoctorServiceImpl implements DoctorService {
 
         // 1. Validation checks
         if (userRepository.findByUsername(request.username()).isPresent()) {
-            throw new IllegalArgumentException("Username already exists.");
+            throw new UsernameAlreadyExistsException("Username already exists.");
         }
         if (personRepository.findByIdentification(request.identification()).isPresent()) {
-            throw new IllegalArgumentException("Identification already exists.");
+            throw new IdentificationAlreadyExistsException("Identification already exists.");
         }
 
         // 2. Create the Doctor Entity
