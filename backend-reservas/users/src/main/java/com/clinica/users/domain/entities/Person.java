@@ -21,7 +21,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "person")
 @Inheritance(strategy = InheritanceType.JOINED)
-public abstract sealed class Person permits Admin, Patient, Doctor, Scheduler {
+public abstract class Person {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -15,6 +15,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "scheduler")
-public final class Scheduler extends Person {
+public class Scheduler extends Person {
 
 }
