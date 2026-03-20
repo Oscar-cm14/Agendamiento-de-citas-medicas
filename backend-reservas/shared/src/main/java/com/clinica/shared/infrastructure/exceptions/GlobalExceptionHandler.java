@@ -3,6 +3,7 @@ package com.clinica.shared.infrastructure.exceptions;
 import com.clinica.shared.dto.ErrorResponse;
 import com.clinica.shared.domain.exceptions.DuplicateResourceException;
 import com.clinica.shared.domain.exceptions.InvalidCredentialsException;
+import com.clinica.shared.domain.exceptions.DoctorNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -35,6 +36,24 @@ public class GlobalExceptionHandler {
                 request.getDescription(false)
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * Handles cases where a doctor is not found.
+     *
+     * @param ex      The thrown DoctorNotFoundException.
+     * @param request The web request context.
+     * @return Ordered error payload with 404 Not Found status.
+     */
+    @ExceptionHandler(DoctorNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleDoctorNotFoundException(DoctorNotFoundException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
     /**

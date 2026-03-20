@@ -5,11 +5,16 @@ import com.clinica.shared.dto.DoctorResponse;
 import com.clinica.shared.domain.UserRole;
 import com.clinica.shared.domain.exceptions.IdentificationAlreadyExistsException;
 import com.clinica.shared.domain.exceptions.UsernameAlreadyExistsException;
+import com.clinica.shared.domain.exceptions.DoctorNotFoundException;
+import com.clinica.shared.dto.DoctorScheduleRequest;
+import com.clinica.doctors.domain.entities.DoctorSchedule;
+import com.clinica.doctors.infrastructure.repositories.DoctorScheduleRepository;
 import com.clinica.users.domain.entities.Doctor;
 import com.clinica.users.domain.entities.User;
 import com.clinica.users.infrastructure.repositories.DoctorRepository;
 import com.clinica.users.infrastructure.repositories.PersonRepository;
 import com.clinica.users.infrastructure.repositories.UserRepository;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +28,7 @@ public class DoctorServiceImpl implements DoctorService {
     private final UserRepository userRepository;
     private final DoctorRepository doctorRepository;
     private final PersonRepository personRepository;
+    private final DoctorScheduleRepository doctorScheduleRepository;
 
     /**
      * Constructor injection for required repositories.
@@ -30,11 +36,13 @@ public class DoctorServiceImpl implements DoctorService {
      * @param userRepository   The user repository for saving authentication info.
      * @param doctorRepository The doctor repository for saving profile info.
      * @param personRepository The person repository for validation checks.
+     * @param doctorScheduleRepository The repository for saving schedules.
      */
-    public DoctorServiceImpl(UserRepository userRepository, DoctorRepository doctorRepository, PersonRepository personRepository) {
+    public DoctorServiceImpl(UserRepository userRepository, DoctorRepository doctorRepository, PersonRepository personRepository, DoctorScheduleRepository doctorScheduleRepository) {
         this.userRepository = userRepository;
         this.doctorRepository = doctorRepository;
         this.personRepository = personRepository;
+        this.doctorScheduleRepository = doctorScheduleRepository;
     }
 
     /**
@@ -90,5 +98,26 @@ public class DoctorServiceImpl implements DoctorService {
                 savedDoctor.getId(),
                 fullName
         );
+    }
+
+    @Override
+    @Transactional
+    public void addSchedulesToDoctor(Long doctorId, List<DoctorScheduleRequest> schedules) {
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorNotFoundException("Doctor with ID " + doctorId + " not found."));
+
+        List<DoctorSchedule> entities = schedules.stream()
+                .map(req -> {
+                    DoctorSchedule schedule = new DoctorSchedule();
+                    schedule.setDoctor(doctor);
+                    schedule.setDayOfWeek(req.dayOfWeek());
+                    schedule.setStartTime(req.startTime());
+                    schedule.setEndTime(req.endTime());
+                    schedule.setSlotIntervalMinutes(req.slotIntervalMinutes());
+                    return schedule;
+                })
+                .toList();
+
+        doctorScheduleRepository.saveAll(entities);
     }
 }

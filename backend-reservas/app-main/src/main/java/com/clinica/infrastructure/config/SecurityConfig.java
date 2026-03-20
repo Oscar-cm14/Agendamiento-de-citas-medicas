@@ -81,7 +81,14 @@ public class SecurityConfig {
                         
                         // Protected endpoints for Doctors
                         .requestMatchers(HttpMethod.POST, "/api/v1/doctors").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/doctors/**/schedules").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").hasAnyRole("ADMIN", "SCHEDULER")
+                        
+                        // Protected endpoints for Patients
+                        .requestMatchers(HttpMethod.POST, "/api/v1/patients").hasAnyRole("ADMIN", "SCHEDULER")
+                        
+                        // Protected endpoints for Appointments
+                        .requestMatchers(HttpMethod.POST, "/api/v1/appointments/manual").hasAnyRole("ADMIN", "SCHEDULER")
                         
                         // Global System Configuration
                         .requestMatchers(HttpMethod.PUT, "/api/v1/configurations/**").hasRole("ADMIN")
