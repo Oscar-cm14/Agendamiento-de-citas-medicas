@@ -1,0 +1,242 @@
+<div class="container my-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📋 Panel Agendador</h2>
+    <button class="btn btn-outline-danger" (click)="cerrarSesion()">
+      Cerrar Sesión
+    </button>
+  </div>
+
+  <!-- Pestañas -->
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <button class="nav-link"
+              [class.active]="pestanaActiva === 'listar'"
+              (click)="pestanaActiva = 'listar'">
+        🔍 Listar Citas
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link"
+              [class.active]="pestanaActiva === 'crear'"
+              (click)="pestanaActiva = 'crear'">
+        ➕ Nueva Cita
+      </button>
+    </li>
+  </ul>
+
+  <!-- PESTAÑA 1: Listar citas RF1 -->
+  <div *ngIf="pestanaActiva === 'listar'">
+    <div class="card shadow p-4">
+      <h5 class="mb-3">Buscar citas por médico y fecha</h5>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-5">
+          <label class="form-label">Médico</label>
+          <select class="form-select" [(ngModel)]="doctorIdBuscar">
+            <option value="0">Seleccione un médico...</option>
+            <option *ngFor="let m of medicos" [value]="m.id">
+              {{ m.fullName }}
+            </option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Fecha</label>
+          <input type="date" class="form-control"
+                 [(ngModel)]="fechaBuscar">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-outline-sesion w-100"
+                  (click)="buscarCitas()"
+                  [disabled]="buscando">
+            {{ buscando ? 'Buscando...' : '🔍 Buscar' }}
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="errorBuscar" class="alert alert-danger">
+        {{ errorBuscar }}
+      </div>
+
+      <!-- Resultados -->
+      <div *ngIf="citas.length > 0">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6>Resultados</h6>
+          <span class="badge bg-primary fs-6">
+            Total: {{ citas.length }} citas
+          </span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Paciente</th>
+                <th>Médico</th>
+                <th>Fecha</th>
+                <th>Hora inicio</th>
+                <th>Hora fin</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cita of citas; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ cita.patientName }}</td>
+                <td>{{ cita.doctorName }}</td>
+                <td>{{ cita.date }}</td>
+                <td>{{ cita.startTime }}</td>
+                <td>{{ cita.endTime }}</td>
+                <td>
+                  <span class="badge"
+                        [class.bg-success]="cita.status === 'SCHEDULED'"
+                        [class.bg-danger]="cita.status === 'CANCELLED'"
+                        [class.bg-secondary]="cita.status === 'COMPLETED'">
+                    {{ cita.status }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div *ngIf="citas.length === 0 && !buscando && fechaBuscar"
+           class="alert alert-info">
+        No hay citas para esta fecha y médico.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PESTAÑA 2: Crear cita RF2 -->
+  <div *ngIf="pestanaActiva === 'crear'">
+    <div class="card shadow p-4">
+
+      <h5 class="mb-4">Nueva Cita por WhatsApp</h5>
+
+      <div *ngIf="citaCreada" class="alert alert-success">
+        ✅ Cita creada exitosamente.
+        <button class="btn btn-link p-0 ms-2"
+                (click)="citaCreada = false">
+          Crear otra
+        </button>
+      </div>
+
+      <div *ngIf="errorCita" class="alert alert-danger">
+        {{ errorCita }}
+      </div>
+
+      <div *ngIf="!citaCreada">
+        <h6 class="mb-3">Datos del Paciente</h6>
+        <div class="row g-3 mb-4">
+
+          <div class="col-md-6">
+            <label class="form-label">Número de documento *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="nuevaCita.identification"
+                   placeholder="Documento de identidad">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Nombres *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="nuevaCita.firstName"
+                   placeholder="Nombres">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Apellidos *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="nuevaCita.lastName"
+                   placeholder="Apellidos">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Celular *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="nuevaCita.phone"
+                   placeholder="Número de celular">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Género *</label>
+            <select class="form-select" [(ngModel)]="nuevaCita.gender">
+              <option value="">Seleccione...</option>
+              <option value="Hombre">Hombre</option>
+              <option value="Mujer">Mujer</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">
+              Fecha de nacimiento
+              <span class="text-muted">(opcional)</span>
+            </label>
+            <input type="date" class="form-control"
+                   [(ngModel)]="nuevaCita.birthDate">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">
+              Correo electrónico
+              <span class="text-muted">(opcional)</span>
+            </label>
+            <input type="email" class="form-control"
+                   [(ngModel)]="nuevaCita.email"
+                   placeholder="correo@ejemplo.com">
+          </div>
+
+        </div>
+
+        <hr>
+        <h6 class="mb-3">Datos de la Cita</h6>
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label">Médico *</label>
+            <select class="form-select"
+                    [(ngModel)]="nuevaCita.doctorId"
+                    (change)="cargarFranjas()">
+              <option value="0">Seleccione un médico...</option>
+              <option *ngFor="let m of medicos" [value]="m.id">
+                {{ m.fullName }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Fecha *</label>
+            <input type="date" class="form-control"
+                   [(ngModel)]="nuevaCita.startTime"
+                   (change)="cargarFranjas()">
+          </div>
+
+          <div class="col-12" *ngIf="franjas.length > 0">
+            <label class="form-label">Hora disponible *</label>
+            <div class="d-flex flex-wrap gap-2">
+              <button *ngFor="let f of franjas"
+                      class="btn btn-outline-success"
+                      (click)="nuevaCita.startTime = f.startTime">
+                {{ f.startTime }}
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <button class="btn btn-outline-sesion w-100"
+                    (click)="crearCita()"
+                    [disabled]="cargandoCita">
+              {{ cargandoCita ? 'Creando cita...' : 'Crear Cita' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
