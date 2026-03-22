@@ -1,6 +1,0 @@
-Fix(Autenticacion): Resolucion compilacion y habilitacion AuthProvider
-
-- Se soluciono el error Inyeccion Dependencias en BackendReservasApplication.
-- Se anadio DaoAuthenticationProvider en SecurityConfig a BCryptPasswordEncoder.
-- Se resolvio el uso incorrecto del patron asterisco en security config.
-- Se removieron endpoints de debug, console printStackTrace tras validar BD.
