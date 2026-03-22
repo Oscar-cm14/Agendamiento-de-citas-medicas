@@ -9,5 +9,4 @@ public class BackendReservasApplication {
     public static void main(String[] args) {
         SpringApplication.run(BackendReservasApplication.class, args);
     }
-
 }

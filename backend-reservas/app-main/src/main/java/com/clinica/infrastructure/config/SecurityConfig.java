@@ -64,6 +64,17 @@ public class SecurityConfig {
     }
 
     /**
+     * Explicitly defines the AuthenticationProvider bean, wiring the UserDetailsService and PasswordEncoder.
+     * This ensures the AuthenticationManager uses our DB and BCrypt correctly.
+     */
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(this.userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    /**
      * Configures the Security Filter Chain. Maps routes to roles and ensures sessions are stateless.
      *
      * @param http the HttpSecurity configuration object.
@@ -81,7 +92,7 @@ public class SecurityConfig {
                         
                         // Protected endpoints for Doctors
                         .requestMatchers(HttpMethod.POST, "/api/v1/doctors").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/doctors/**/schedules").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/doctors/*/schedules").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").hasAnyRole("ADMIN", "SCHEDULER")
                         
                         // Protected endpoints for Patients
@@ -96,6 +107,9 @@ public class SecurityConfig {
                         // Any other request must be authenticated
                         .anyRequest().authenticated()
                 );
+
+        // Register our custom authentication provider explicitly
+        http.authenticationProvider(authenticationProvider());
 
         // Add our custom JWT filter *before* the UsernamePasswordAuthenticationFilter
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
