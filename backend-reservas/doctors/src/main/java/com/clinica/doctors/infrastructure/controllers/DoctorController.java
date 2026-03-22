@@ -3,9 +3,12 @@ package com.clinica.doctors.infrastructure.controllers;
 import com.clinica.doctors.application.services.DoctorService;
 import com.clinica.shared.dto.DoctorRegistrationRequest;
 import com.clinica.shared.dto.DoctorResponse;
+import com.clinica.shared.dto.DoctorScheduleRequest;
+import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,5 +42,19 @@ public class DoctorController {
     public ResponseEntity<DoctorResponse> registerDoctor(@Valid @RequestBody DoctorRegistrationRequest request) {
         DoctorResponse response = doctorService.registerDoctor(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Endpoint to add availability schedules to a specific doctor.
+     * Restricted to ADMIN role in SecurityConfig.
+     *
+     * @param doctorId  The ID of the doctor.
+     * @param schedules List of schedules to add.
+     * @return 200 OK if successful.
+     */
+    @PostMapping("/{doctorId}/schedules")
+    public ResponseEntity<Void> addSchedules(@PathVariable Long doctorId, @Valid @RequestBody List<DoctorScheduleRequest> schedules) {
+        doctorService.addSchedulesToDoctor(doctorId, schedules);
+        return ResponseEntity.ok().build();
     }
 }
