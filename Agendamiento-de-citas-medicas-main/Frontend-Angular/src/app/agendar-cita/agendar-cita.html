@@ -1,0 +1,61 @@
+<section id="agendar" class="container my-5">
+  <div class="card shadow p-4">
+
+    <h2 class="mb-4">Agendar Cita</h2>
+
+    <div *ngIf="citaCreada" class="alert alert-success">
+      ¡Cita agendada exitosamente!
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+    <div *ngIf="!citaCreada">
+
+      <!-- Seleccionar médico -->
+      <div class="mb-3">
+        <label class="form-label">Médico</label>
+        <select class="form-select" [(ngModel)]="doctorId"
+                (change)="buscarFranjas()">
+          <option value="0">Seleccione un médico...</option>
+          <option *ngFor="let m of medicos" [value]="m.id">
+            {{ m.fullName }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Seleccionar fecha -->
+      <div class="mb-3">
+        <label class="form-label">Fecha</label>
+        <input type="date" class="form-control"
+               [(ngModel)]="fecha"
+               (change)="buscarFranjas()">
+      </div>
+
+      <!-- Franjas disponibles -->
+      <div *ngIf="franjas.length > 0" class="mb-3">
+        <label class="form-label">Franja horaria disponible</label>
+        <div class="d-flex flex-wrap gap-2">
+          <button *ngFor="let f of franjas"
+                  class="btn"
+                  [class.btn-success]="f.available && franjaSeleccionada === f"
+                  [class.btn-outline-success]="f.available && franjaSeleccionada !== f"
+                  [class.btn-secondary]="!f.available"
+                  [disabled]="!f.available"
+                  (click)="seleccionarFranja(f)">
+            {{ f.startTime }} - {{ f.endTime }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Confirmar -->
+      <div class="d-grid mt-3">
+        <button class="btn btn-outline-sesion"
+                (click)="confirmarCita()"
+                [disabled]="!franjaSeleccionada || cargando">
+          {{ cargando ? 'Agendando...' : 'Confirmar Cita' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+</section>

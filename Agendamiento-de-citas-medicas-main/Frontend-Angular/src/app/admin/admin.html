@@ -1,0 +1,253 @@
+<div class="container my-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🏥 Panel Administrador</h2>
+    <button class="btn btn-outline-danger" (click)="cerrarSesion()">
+      Cerrar Sesión
+    </button>
+  </div>
+
+  <!-- Pestañas -->
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <button class="nav-link"
+              [class.active]="pestanaActiva === 'registrar-medico'"
+              (click)="pestanaActiva = 'registrar-medico'">
+        👨‍⚕️ Registrar Médico
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link"
+              [class.active]="pestanaActiva === 'registrar-agendador'"
+              (click)="pestanaActiva = 'registrar-agendador'">
+        📋 Registrar Agendador
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link"
+              [class.active]="pestanaActiva === 'configuracion'"
+              (click)="pestanaActiva = 'configuracion'">
+        ⚙️ Configuración
+      </button>
+    </li>
+  </ul>
+
+  <!-- PESTAÑA 1: Registrar médico -->
+  <div *ngIf="pestanaActiva === 'registrar-medico'">
+    <div class="card shadow p-4" style="max-width: 600px;">
+      <h4 class="mb-4">Registrar Nuevo Médico</h4>
+
+      <div *ngIf="medicoRegistrado" class="alert alert-success">
+        ✅ Médico registrado exitosamente.
+        <button class="btn btn-link p-0 ms-2"
+                (click)="medicoRegistrado = false">
+          Registrar otro
+        </button>
+      </div>
+
+      <div *ngIf="errorMedico" class="alert alert-danger">
+        {{ errorMedico }}
+      </div>
+
+      <div *ngIf="!medicoRegistrado">
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label">Identificación *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="medico.identification"
+                   placeholder="Número de documento">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Nombre *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="medico.firstName"
+                   placeholder="Nombre">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Apellido *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="medico.lastName"
+                   placeholder="Apellido">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Teléfono *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="medico.phone"
+                   placeholder="Teléfono">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Correo *</label>
+            <input type="email" class="form-control"
+                   [(ngModel)]="medico.email"
+                   placeholder="Correo electrónico">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Especialidad *</label>
+            <select class="form-select" [(ngModel)]="medico.specialty">
+              <option value="">Seleccione...</option>
+              <option value="Medicina Interna">Medicina Interna</option>
+              <option value="Cardiología">Cardiología</option>
+              <option value="Pediatría">Pediatría</option>
+              <option value="Ginecología">Ginecología</option>
+              <option value="Quiropraxia">Quiropraxia</option>
+              <option value="Terapia Neural">Terapia Neural</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Número de licencia *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="medico.licenseNumber"
+                   placeholder="Licencia médica">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Usuario *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="medico.username"
+                   placeholder="Nombre de usuario">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Contraseña *</label>
+            <input type="password" class="form-control"
+                   [(ngModel)]="medico.password"
+                   placeholder="Contraseña">
+          </div>
+
+          <div class="col-12">
+            <button class="btn btn-outline-sesion w-100"
+                    (click)="registrarMedico()"
+                    [disabled]="cargandoMedico">
+              {{ cargandoMedico ? 'Registrando...' : 'Registrar Médico' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA 2: Registrar agendador -->
+  <div *ngIf="pestanaActiva === 'registrar-agendador'">
+    <div class="card shadow p-4" style="max-width: 600px;">
+      <h4 class="mb-4">Registrar Nuevo Agendador</h4>
+
+      <div *ngIf="agendadorRegistrado" class="alert alert-success">
+         Agendador registrado exitosamente.
+        <button class="btn btn-link p-0 ms-2"
+                (click)="agendadorRegistrado = false">
+          Registrar otro
+        </button>
+      </div>
+
+      <div *ngIf="errorAgendador" class="alert alert-danger">
+        {{ errorAgendador }}
+      </div>
+
+      <div *ngIf="!agendadorRegistrado">
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label">Identificación *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="agendador.identification"
+                   placeholder="Número de documento">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Nombre *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="agendador.firstName"
+                   placeholder="Nombre">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Apellido *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="agendador.lastName"
+                   placeholder="Apellido">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Teléfono *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="agendador.phone"
+                   placeholder="Teléfono">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Correo *</label>
+            <input type="email" class="form-control"
+                   [(ngModel)]="agendador.email"
+                   placeholder="Correo electrónico">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Usuario *</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="agendador.username"
+                   placeholder="Nombre de usuario">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Contraseña *</label>
+            <input type="password" class="form-control"
+                   [(ngModel)]="agendador.password"
+                   placeholder="Contraseña">
+          </div>
+
+          <div class="col-12">
+            <button class="btn btn-outline-sesion w-100"
+                    (click)="registrarAgendador()"
+                    [disabled]="cargandoAgendador">
+              {{ cargandoAgendador ? 'Registrando...' : 'Registrar Agendador' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA 3: Configuración -->
+  <div *ngIf="pestanaActiva === 'configuracion'">
+    <div class="card shadow p-4" style="max-width: 500px;">
+      <h4 class="mb-4">Configuración del Sistema</h4>
+
+      <div *ngIf="configGuardada" class="alert alert-success">
+         Configuración guardada exitosamente.
+      </div>
+
+      <div *ngIf="errorConfig" class="alert alert-danger">
+        {{ errorConfig }}
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label fw-bold">
+          Ventana de tiempo para citas (semanas)
+        </label>
+        <input type="number" class="form-control"
+               [(ngModel)]="configuracion.windowWeeks"
+               min="1" max="52">
+        <small class="text-muted">
+          Cuántas semanas hacia adelante se pueden agendar citas.
+        </small>
+      </div>
+
+      <button class="btn btn-outline-sesion w-100"
+              (click)="guardarConfiguracion()">
+         Guardar Configuración
+      </button>
+
+    </div>
+  </div>
+
+</div>
