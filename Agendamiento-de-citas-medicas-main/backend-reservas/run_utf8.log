@@ -1,0 +1,123 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.clinica:app-main >------------------------
+[INFO] Building app-main 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.4.3:run (default-cli) > test-compile @ app-main >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ app-main ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ app-main ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 3 source files with javac [debug parameters release 21] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[4,33] cannot access com.clinica.shared.domain.UserRole
+  bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\shared\0.0.1-SNAPSHOT\shared-0.0.1-SNAPSHOT.jar(/com/clinica/shared/domain/UserRole.class)
+    class file has wrong version 69.0, should be 65.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[5,41] cannot access com.clinica.users.domain.entities.Admin
+  bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\users\0.0.1-SNAPSHOT\users-0.0.1-SNAPSHOT.jar(/com/clinica/users/domain/entities/Admin.class)
+    class file has wrong version 69.0, should be 65.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[6,41] cannot access com.clinica.users.domain.entities.User
+  bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\users\0.0.1-SNAPSHOT\users-0.0.1-SNAPSHOT.jar(/com/clinica/users/domain/entities/User.class)
+    class file has wrong version 69.0, should be 65.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[7,53] cannot access com.clinica.users.infrastructure.repositories.UserRepository
+  bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\users\0.0.1-SNAPSHOT\users-0.0.1-SNAPSHOT.jar(/com/clinica/users/infrastructure/repositories/UserRepository.class)
+    class file has wrong version 69.0, should be 65.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/SecurityConfig.java:[17,49] cannot access com.clinica.users.infrastructure.security.AuthTokenFilter
+  bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\users\0.0.1-SNAPSHOT\users-0.0.1-SNAPSHOT.jar(/com/clinica/users/infrastructure/security/AuthTokenFilter.class)
+    class file has wrong version 69.0, should be 65.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[20,39] cannot find symbol
+  symbol:   class UserRepository
+  location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/SecurityConfig.java:[28,19] cannot find symbol
+  symbol:   class AuthTokenFilter
+  location: class com.clinica.infrastructure.config.SecurityConfig
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/SecurityConfig.java:[30,27] cannot find symbol
+  symbol:   class AuthTokenFilter
+  location: class com.clinica.infrastructure.config.SecurityConfig
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[27,17] cannot find symbol
+  symbol:   class Admin
+  location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[27,41] cannot find symbol
+  symbol:   class Admin
+  location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[34,17] cannot find symbol
+  symbol:   class User
+  location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[34,38] cannot find symbol
+  symbol:   class User
+  location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[38,35] cannot find symbol
+  symbol:   variable UserRole
+  location: class com.clinica.infrastructure.config.DataInitializer
+[INFO] 13 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  8.939 s
+[INFO] Finished at: 2026-03-22T14:06:59-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project app-main: Compilation failure: Compilation failure: 
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[4,33] cannot access com.clinica.shared.domain.UserRole
+[ERROR]   bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\shared\0.0.1-SNAPSHOT\shared-0.0.1-SNAPSHOT.jar(/com/clinica/shared/domain/UserRole.class)
+[ERROR]     class file has wrong version 69.0, should be 65.0
+[ERROR]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[5,41] cannot access com.clinica.users.domain.entities.Admin
+[ERROR]   bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\users\0.0.1-SNAPSHOT\users-0.0.1-SNAPSHOT.jar(/com/clinica/users/domain/entities/Admin.class)
+[ERROR]     class file has wrong version 69.0, should be 65.0
+[ERROR]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[6,41] cannot access com.clinica.users.domain.entities.User
+[ERROR]   bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\users\0.0.1-SNAPSHOT\users-0.0.1-SNAPSHOT.jar(/com/clinica/users/domain/entities/User.class)
+[ERROR]     class file has wrong version 69.0, should be 65.0
+[ERROR]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[7,53] cannot access com.clinica.users.infrastructure.repositories.UserRepository
+[ERROR]   bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\users\0.0.1-SNAPSHOT\users-0.0.1-SNAPSHOT.jar(/com/clinica/users/infrastructure/repositories/UserRepository.class)
+[ERROR]     class file has wrong version 69.0, should be 65.0
+[ERROR]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/SecurityConfig.java:[17,49] cannot access com.clinica.users.infrastructure.security.AuthTokenFilter
+[ERROR]   bad class file: C:\Users\AN515-54-55MX\.m2\repository\com\clinica\users\0.0.1-SNAPSHOT\users-0.0.1-SNAPSHOT.jar(/com/clinica/users/infrastructure/security/AuthTokenFilter.class)
+[ERROR]     class file has wrong version 69.0, should be 65.0
+[ERROR]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[20,39] cannot find symbol
+[ERROR]   symbol:   class UserRepository
+[ERROR]   location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/SecurityConfig.java:[28,19] cannot find symbol
+[ERROR]   symbol:   class AuthTokenFilter
+[ERROR]   location: class com.clinica.infrastructure.config.SecurityConfig
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/SecurityConfig.java:[30,27] cannot find symbol
+[ERROR]   symbol:   class AuthTokenFilter
+[ERROR]   location: class com.clinica.infrastructure.config.SecurityConfig
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[27,17] cannot find symbol
+[ERROR]   symbol:   class Admin
+[ERROR]   location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[27,41] cannot find symbol
+[ERROR]   symbol:   class Admin
+[ERROR]   location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[34,17] cannot find symbol
+[ERROR]   symbol:   class User
+[ERROR]   location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[34,38] cannot find symbol
+[ERROR]   symbol:   class User
+[ERROR]   location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] /C:/Users/AN515-54-55MX/OneDrive/Escritorio/Agendamiento de citas medicas/Agendamiento-de-citas-medicas-main/backend-reservas/app-main/src/main/java/com/clinica/infrastructure/config/DataInitializer.java:[38,35] cannot find symbol
+[ERROR]   symbol:   variable UserRole
+[ERROR]   location: class com.clinica.infrastructure.config.DataInitializer
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
