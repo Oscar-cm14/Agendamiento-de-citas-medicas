@@ -1,0 +1,94 @@
+<!-- REGISTRO -->
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card shadow p-4">
+
+        <a routerLink="/" class="btn btn-link mb-3">← Volver al inicio</a>
+
+        <h2 class="mb-4">Registro de Pacientes</h2>
+
+        <div *ngIf="registroExitoso" class="alert alert-success">
+          ¡Registro exitoso!
+          <a routerLink="/login" class="btn btn-outline-sesion mt-2 d-block">
+            Iniciar Sesión
+          </a>
+        </div>
+
+        <div *ngIf="errorServidor" class="alert alert-danger">
+          {{ errorServidor }}
+        </div>
+
+        <div *ngIf="!registroExitoso">
+
+          <div class="mb-3">
+            <label class="form-label">Nombre Completo</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="nombre"
+                   (blur)="validarNombre(nombre)"
+                   [class.is-invalid]="nombreError">
+            <div class="invalid-feedback">{{ nombreError }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Número de Identificación</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="identificacion"
+                   (blur)="validarIdentificacion(identificacion)"
+                   [class.is-invalid]="identificacionError">
+            <div class="invalid-feedback">{{ identificacionError }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Celular</label>
+            <input type="text" class="form-control"
+                   [(ngModel)]="celular"
+                   placeholder="Número de celular">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Género</label>
+            <select class="form-select" [(ngModel)]="genero">
+              <option value="">Seleccione...</option>
+              <option value="Hombre">Hombre</option>
+              <option value="Mujer">Mujer</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Correo Electrónico</label>
+            <input type="email" class="form-control"
+                   [(ngModel)]="email"
+                   (blur)="validarEmail(email)"
+                   [class.is-invalid]="emailError">
+            <div class="invalid-feedback">{{ emailError }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Contraseña</label>
+            <input type="password" class="form-control"
+                   [(ngModel)]="contrasena"
+                   (blur)="validarContrasena(contrasena)"
+                   [class.is-invalid]="contrasenaError">
+            <div class="invalid-feedback">{{ contrasenaError }}</div>
+          </div>
+
+          <div class="d-grid mb-3">
+            <button class="btn btn-outline-sesion"
+                    (click)="registrar()"
+                    [disabled]="cargando">
+              {{ cargando ? 'Registrando...' : 'Registrarse' }}
+            </button>
+          </div>
+
+          <p class="text-center">
+            ¿Ya tiene cuenta?
+            <a routerLink="/login">Iniciar Sesión</a>
+          </p>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

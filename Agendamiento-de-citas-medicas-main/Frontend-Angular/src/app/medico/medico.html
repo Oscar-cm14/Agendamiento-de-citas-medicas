@@ -1,0 +1,135 @@
+<!-- SECCIÓN MÉDICOS -->
+<section id="medicos" class="container my-5">
+
+  <div class="row">
+
+    <!-- LISTA ESPECIALIDADES -->
+    <aside class="col-12 col-sm-5 col-md-4 bg-light p-3 rounded">
+
+      <h5>Especialidades Médicas</h5>
+
+      <ul class="list-group">
+
+        <li class="list-group-item list-group-item-action"
+        (click)="mostrarDescripcion('interna')">
+        Medicina Interna
+        </li>
+
+        <li class="list-group-item list-group-item-action"
+        (click)="mostrarDescripcion('cardio')">
+        Cardiología
+        </li>
+
+        <li class="list-group-item list-group-item-action"
+        (click)="mostrarDescripcion('pedia')">
+        Pediatría
+        </li>
+
+        <li class="list-group-item list-group-item-action"
+        (click)="mostrarDescripcion('gine')">
+        Ginecología
+        </li>
+
+        <li class="list-group-item list-group-item-action"
+        (click)="mostrarDescripcion('quiro')">
+        Quiropraxia
+        </li>
+
+        <li class="list-group-item list-group-item-action"
+        (click)="mostrarDescripcion('tera')">
+        Terapia Neural
+        </li>
+
+      </ul>
+
+    </aside>
+
+    <!-- DESCRIPCIÓN -->
+    <div class="col-12 col-sm-7 col-md-8">
+
+      <div class="especialidad-descripcion">
+        {{descripcion}}
+      </div>
+
+   
+
+    <!-- MÉDICOS -->
+          <div class="row">
+                <!-- tarjeta medico -->
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                    <div class="card h-100">
+                        <img src="https://images.unsplash.com/photo-1628348070889-cb656235b4eb?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                        class="card-img-top img-fluid">
+
+                        <div class="card-body text-center">
+                            <h5>Dr. Andrés Gómez</h5>
+                            <p>Cardiólogo intervencionista</p>
+                           <!--- <button class="btn btn-primary">Agendar cita</button>-->
+                        </div>
+                    </div>
+                </div>
+
+               
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                        <div class="card h-100">
+                            <img src="https://images.unsplash.com/photo-1701557773653-04de23cbc5dc?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                                class="card-img-top img-fluid">
+                            <div class="card-body text-center">
+                                <h5>Dra. Laura Martínez</h5>
+                                <p>Pediatría neonatal</p>
+                               <!--- <button class="btn btn-primary">Agendar cita</button>-->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                        <div class="card h-100">
+                            <img src="https://plus.unsplash.com/premium_photo-1661729440943-b1aacc5b7ab4?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                                class="card-img-top img-fluid">
+                            <div class="card-body text-center">
+                                <h5>Dr. Miguel Rojas</h5>
+                                <p>Medicina Interna</p>
+                               <!--- <button class="btn btn-primary">Agendar cita</button>-->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                        <div class="card h-100">
+                            <img src="https://plus.unsplash.com/premium_photo-1702598601279-d114268b3254?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                                class="card-img-top img-fluid">
+                            <div class="card-body text-center">
+                                <h5>Dra. Camila Herrera</h5>
+                                <p>Ginecología y Obstetricia</p>
+                              <!--- <button class="btn btn-primary">Agendar cita</button>-->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                        <div class="card h-100">
+                            <img src="https://plus.unsplash.com/premium_photo-1661779360652-b067e858ad02?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                                class="card-img-top img-fluid">
+                            <div class="card-body text-center">
+                                <h5>Dra. Maria Jimenez</h5>
+                                <p>Quiropraxia</p>
+                              <!---  <button class="btn btn-primary">Agendar cita</button>-->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                        <div class="card h-100">
+                            <img src="https://images.unsplash.com/photo-1761637755331-562c6529ace6?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                                class="card-img-top img-fluid">
+                            <div class="card-body text-center">
+                                <h5>Dr. Manuel Turizo</h5>
+                                <p>Terapia Neural</p>
+                                <!--<button class="btn btn-primary">Agendar cita</button>-->
+                            </div>
+                        </div>
+                    </div>
+
+            </div>
+
+        </div>
+         </div>
+</section>
