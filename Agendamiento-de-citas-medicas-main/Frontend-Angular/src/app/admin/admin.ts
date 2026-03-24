@@ -1,4 +1,4 @@
-import { Component, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, Inject, PLATFORM_ID, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
@@ -10,7 +10,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
   imports: [FormsModule, CommonModule, RouterLink],
   templateUrl: './admin.html'
 })
-export class Admin {
+export class Admin implements OnInit {
 
   pestanaActiva = 'registrar-medico';
 
@@ -49,6 +49,28 @@ export class Admin {
   configGuardada = false;
   errorConfig = '';
 
+  // Horarios Médicos
+  doctores: any[] = [];
+  DIAS_SEMANA = [
+    { value: 'MONDAY', label: 'Lunes' },
+    { value: 'TUESDAY', label: 'Martes' },
+    { value: 'WEDNESDAY', label: 'Miércoles' },
+    { value: 'THURSDAY', label: 'Jueves' },
+    { value: 'FRIDAY', label: 'Viernes' },
+    { value: 'SATURDAY', label: 'Sábado' },
+    { value: 'SUNDAY', label: 'Domingo' }
+  ];
+  horarioMedico = {
+    doctorId: null as number | null,
+    workingDays: [] as string[],
+    startTime: '08:00',
+    endTime: '17:00',
+    intervalMinutes: 30
+  };
+  horarioGuardado = false;
+  errorHorario = '';
+  cargandoHorario = false;
+
   private apiUrl = 'http://localhost:8080/api/v1';
 
   constructor(
@@ -56,6 +78,17 @@ export class Admin {
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
+
+  ngOnInit() {
+    this.cargarDoctores();
+  }
+
+  cargarDoctores() {
+    this.http.get<any[]>(`${this.apiUrl}/doctors`, { headers: this.headers() }).subscribe({
+      next: (data) => this.doctores = data,
+      error: (err) => console.error('Error cargando doctores', err)
+    });
+  }
 
   private headers(): HttpHeaders {
     const token = isPlatformBrowser(this.platformId)
@@ -123,5 +156,70 @@ export class Admin {
         this.errorConfig = err.error?.message || 'Error al guardar configuración';
       }
     });
+  }
+
+  cargarHorarioMedico() {
+    if (!this.horarioMedico.doctorId) return;
+    
+    this.http.get<any>(`${this.apiUrl}/doctors/schedules/${this.horarioMedico.doctorId}`, { headers: this.headers() })
+      .subscribe({
+        next: (data) => {
+          if (data) {
+            this.horarioMedico.workingDays = data.workingDays || [];
+            this.horarioMedico.startTime = data.startTime ? data.startTime.substring(0, 5) : '08:00';
+            this.horarioMedico.endTime = data.endTime ? data.endTime.substring(0, 5) : '17:00';
+            this.horarioMedico.intervalMinutes = data.intervalMinutes || 30;
+          }
+        },
+        error: (err) => {
+          if (err.status === 404) {
+             this.horarioMedico.workingDays = [];
+             this.horarioMedico.startTime = '08:00';
+             this.horarioMedico.endTime = '17:00';
+             this.horarioMedico.intervalMinutes = 30;
+          } else {
+             console.error('Error cargando horario', err);
+          }
+        }
+      });
+  }
+
+  onDiaCheckboxChange(event: any, diaValue: string) {
+    if (event.target.checked) {
+      if (!this.horarioMedico.workingDays.includes(diaValue)) {
+        this.horarioMedico.workingDays.push(diaValue);
+      }
+    } else {
+      this.horarioMedico.workingDays = this.horarioMedico.workingDays.filter(d => d !== diaValue);
+    }
+  }
+
+  guardarHorarioMedico() {
+    this.cargandoHorario = true;
+    this.errorHorario = '';
+    
+    let payload = {
+       doctorId: this.horarioMedico.doctorId,
+       workingDays: this.horarioMedico.workingDays,
+       startTime: this.horarioMedico.startTime,
+       endTime: this.horarioMedico.endTime,
+       intervalMinutes: this.horarioMedico.intervalMinutes
+    };
+
+    if (payload.startTime && payload.startTime.length === 5) payload.startTime += ':00';
+    if (payload.endTime && payload.endTime.length === 5) payload.endTime += ':00';
+
+    this.http.put(`${this.apiUrl}/doctors/schedules`, payload, { headers: this.headers() })
+      .subscribe({
+        next: () => {
+          this.horarioGuardado = true;
+          this.cargandoHorario = false;
+          setTimeout(() => this.horarioGuardado = false, 3000);
+        },
+        error: (err) => {
+          this.errorHorario = err.error?.message || 'Error al guardar horario';
+          this.cargandoHorario = false;
+        }
+      });
   }
 }

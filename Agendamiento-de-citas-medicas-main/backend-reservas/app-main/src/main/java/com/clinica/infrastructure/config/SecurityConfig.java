@@ -64,8 +64,9 @@ public class SecurityConfig {
                         // ADMIN registra médicos
                         .requestMatchers("/api/v1/doctors").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
-                        // ADMIN y SCHEDULER crean citas
-                        .requestMatchers("/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER")
+                        // Creadores de citas
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER")
 
                         // ADMIN, SCHEDULER y PATIENT ven franjas
                         .requestMatchers("/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")

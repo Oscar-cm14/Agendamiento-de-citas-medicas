@@ -46,10 +46,19 @@ export class AuthService {
     if (isPlatformBrowser(this.platformId)) {
       localStorage.removeItem('token');
       localStorage.removeItem('role');
+      localStorage.removeItem('userId');
     }
   }
 
   estaAutenticado(): boolean {
     return this.obtenerToken() !== null;
+  }
+
+  obtenerUserId(): number | null {
+    if (isPlatformBrowser(this.platformId)) {
+      const id = localStorage.getItem('userId');
+      return id ? Number(id) : null;
+    }
+    return null;
   }
 }

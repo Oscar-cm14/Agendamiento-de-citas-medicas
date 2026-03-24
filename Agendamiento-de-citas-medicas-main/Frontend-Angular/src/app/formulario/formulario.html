@@ -21,13 +21,24 @@
 
         <div *ngIf="!registroExitoso">
 
-          <div class="mb-3">
-            <label class="form-label">Nombre Completo</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="nombre"
-                   (blur)="validarNombre(nombre)"
-                   [class.is-invalid]="nombreError">
-            <div class="invalid-feedback">{{ nombreError }}</div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Nombres *</label>
+              <input type="text" class="form-control"
+                     [(ngModel)]="nombres"
+                     (blur)="validarNombres(nombres)"
+                     [class.is-invalid]="nombresError">
+              <div class="invalid-feedback">{{ nombresError }}</div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Apellidos *</label>
+              <input type="text" class="form-control"
+                     [(ngModel)]="apellidos"
+                     (blur)="validarApellidos(apellidos)"
+                     [class.is-invalid]="apellidosError">
+              <div class="invalid-feedback">{{ apellidosError }}</div>
+            </div>
           </div>
 
           <div class="mb-3">

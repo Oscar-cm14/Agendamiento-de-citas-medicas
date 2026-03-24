@@ -31,6 +31,13 @@
         ⚙️ Configuración
       </button>
     </li>
+    <li class="nav-item">
+      <button class="nav-link"
+              [class.active]="pestanaActiva === 'horarios'"
+              (click)="pestanaActiva = 'horarios'">
+        📅 Horarios Médicos
+      </button>
+    </li>
   </ul>
 
   <!-- PESTAÑA 1: Registrar médico -->
@@ -246,6 +253,71 @@
               (click)="guardarConfiguracion()">
          Guardar Configuración
       </button>
+
+    </div>
+  </div>
+
+  <!-- PESTAÑA 4: Horarios Médicos -->
+  <div *ngIf="pestanaActiva === 'horarios'">
+    <div class="card shadow p-4" style="max-width: 600px;">
+      <h4 class="mb-4">Configurar Horario Médico</h4>
+
+      <div *ngIf="horarioGuardado" class="alert alert-success">
+         Horario guardado exitosamente.
+      </div>
+
+      <div *ngIf="errorHorario" class="alert alert-danger">
+        {{ errorHorario }}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold">Médico *</label>
+        <select class="form-select" [(ngModel)]="horarioMedico.doctorId" (change)="cargarHorarioMedico()">
+          <option [ngValue]="null">Seleccione un médico...</option>
+          <option *ngFor="let doc of doctores" [ngValue]="doc.id">
+            {{ doc.fullName }}
+          </option>
+        </select>
+      </div>
+
+      <div *ngIf="horarioMedico.doctorId">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Días de atención *</label>
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            <div class="form-check" *ngFor="let dia of DIAS_SEMANA">
+              <input class="form-check-input" type="checkbox"
+                     [id]="'dia_'+dia.value"
+                     [checked]="horarioMedico.workingDays.includes(dia.value)"
+                     (change)="onDiaCheckboxChange($event, dia.value)">
+              <label class="form-check-label" [for]="'dia_'+dia.value">
+                {{ dia.label }}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Hora de Inicio *</label>
+            <input type="time" class="form-control" [(ngModel)]="horarioMedico.startTime">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Hora de Fin *</label>
+            <input type="time" class="form-control" [(ngModel)]="horarioMedico.endTime">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-bold">Intervalo de tiempo entre citas (minutos) *</label>
+          <input type="number" class="form-control" [(ngModel)]="horarioMedico.intervalMinutes" min="10">
+        </div>
+
+        <button class="btn btn-outline-sesion w-100"
+                (click)="guardarHorarioMedico()"
+                [disabled]="cargandoHorario || horarioMedico.workingDays.length === 0">
+          {{ cargandoHorario ? 'Guardando...' : 'Guardar Horario' }}
+        </button>
+      </div>
 
     </div>
   </div>

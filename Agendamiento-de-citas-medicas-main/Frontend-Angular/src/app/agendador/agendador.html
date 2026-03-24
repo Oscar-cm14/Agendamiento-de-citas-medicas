@@ -211,7 +211,7 @@
           <div class="col-md-6">
             <label class="form-label">Fecha *</label>
             <input type="date" class="form-control"
-                   [(ngModel)]="nuevaCita.startTime"
+                   [(ngModel)]="nuevaCita.fecha"
                    (change)="cargarFranjas()">
           </div>
 
@@ -220,6 +220,8 @@
             <div class="d-flex flex-wrap gap-2">
               <button *ngFor="let f of franjas"
                       class="btn btn-outline-success"
+                      [class.btn-success]="nuevaCita.startTime === f.startTime"
+                      [class.text-white]="nuevaCita.startTime === f.startTime"
                       (click)="nuevaCita.startTime = f.startTime">
                 {{ f.startTime }}
               </button>

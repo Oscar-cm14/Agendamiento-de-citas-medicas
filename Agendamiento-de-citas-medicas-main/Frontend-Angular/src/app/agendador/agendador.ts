@@ -34,6 +34,7 @@ export class Agendador {
     email: '',
     // Datos de la cita
     doctorId: 0,
+    fecha: '',
     startTime: ''
   };
   franjas: any[] = [];
@@ -100,10 +101,10 @@ export class Agendador {
 
   // RF2: Cargar franjas al seleccionar médico y fecha
   cargarFranjas() {
-    if (!this.nuevaCita.doctorId || !this.nuevaCita.startTime) return;
+    if (!this.nuevaCita.doctorId || !this.nuevaCita.fecha) return;
     const params = new HttpParams()
       .set('doctorId', this.nuevaCita.doctorId)
-      .set('date', this.nuevaCita.startTime);
+      .set('date', this.nuevaCita.fecha);
 
     this.http.get<any[]>(`${this.apiUrl}/appointments/slots`,
       { headers: this.headers(), params }).subscribe({
@@ -136,8 +137,8 @@ export class Agendador {
         const datosCita = {
           doctorId: this.nuevaCita.doctorId,
           patientId: paciente.id,
-          date: this.nuevaCita.startTime,
-          startTime: this.franjas[0]?.startTime,
+          date: this.nuevaCita.fecha,
+          startTime: this.nuevaCita.startTime,
           notes: 'Cita agendada por WhatsApp'
         };
 

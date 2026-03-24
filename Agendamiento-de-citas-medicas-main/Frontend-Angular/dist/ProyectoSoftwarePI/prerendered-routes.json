@@ -1,0 +1,10 @@
+{
+  "routes": {
+    "/": {},
+    "/admin": {},
+    "/agendador": {},
+    "/agendar": {},
+    "/login": {},
+    "/registro": {}
+  }
+}
