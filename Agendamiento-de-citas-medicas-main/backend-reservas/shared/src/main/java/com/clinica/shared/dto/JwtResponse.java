@@ -10,6 +10,7 @@ package com.clinica.shared.dto;
  */
 public record JwtResponse(
         String token,
+        Long id,
         String username,
         String role
 ) {

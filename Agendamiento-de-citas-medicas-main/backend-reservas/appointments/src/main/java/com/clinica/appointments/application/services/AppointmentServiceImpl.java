@@ -10,8 +10,11 @@ import com.clinica.doctors.domain.entities.Doctor;
 import com.clinica.doctors.infrastructure.repositories.DoctorRepository;  
 import com.clinica.users.domain.entities.Patient;
 import com.clinica.users.infrastructure.repositories.PatientRepository;
+import com.clinica.doctors.domain.entities.DoctorSchedule;
+import com.clinica.doctors.infrastructure.repositories.DoctorScheduleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Optional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -28,13 +31,16 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
+    private final DoctorScheduleRepository doctorScheduleRepository;
 
     public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
                                   DoctorRepository doctorRepository,
-                                  PatientRepository patientRepository) {
+                                  PatientRepository patientRepository,
+                                  DoctorScheduleRepository doctorScheduleRepository) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
+        this.doctorScheduleRepository = doctorScheduleRepository;
     }
 
     /**
@@ -92,21 +98,50 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     /**
-     * RF3: Retorna las franjas horarias disponibles de un médico en una fecha.
-     * Genera franjas de 8:00 a 17:00 cada 30 minutos.
+     * RF3: Returns available time slots for a doctor on a specific date.
+     * Integrates RF4 by checking the doctor's schedule configuration.
+     * Generating slots according to configured hours and intervals.
+     * Default: 8:00 to 17:00, 30 min interval, Monday to Friday.
+     *
+     * @param doctorId The ID of the doctor
+     * @param date     The date to check for available slots
+     * @return List of available slots
      */
     @Override
     public List<AvailableSlotResponse> getAvailableSlots(Long doctorId, LocalDate date) {
 
         List<AvailableSlotResponse> slots = new ArrayList<>();
+        java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
 
-        LocalTime inicio = LocalTime.of(8, 0);
-        LocalTime fin = LocalTime.of(17, 0);
-        int intervalo = 30;
+        Optional<DoctorSchedule> scheduleOpt = doctorScheduleRepository.findByDoctorId(doctorId);
+
+        LocalTime inicio;
+        LocalTime fin;
+        int intervalo;
+
+        if (scheduleOpt.isPresent()) {
+            DoctorSchedule schedule = scheduleOpt.get();
+            if (schedule.getWorkingDays() == null || !schedule.getWorkingDays().contains(dayOfWeek)) {
+                return slots;
+            }
+            inicio = schedule.getStartTime();
+            fin = schedule.getEndTime();
+            intervalo = schedule.getIntervalMinutes();
+        } else {
+            if (dayOfWeek == java.time.DayOfWeek.SATURDAY || dayOfWeek == java.time.DayOfWeek.SUNDAY) {
+                return slots;
+            }
+            inicio = LocalTime.of(8, 0);
+            fin = LocalTime.of(17, 0);
+            intervalo = 30;
+        }
 
         LocalTime current = inicio;
         while (current.isBefore(fin)) {
             LocalTime next = current.plusMinutes(intervalo);
+            if (next.isAfter(fin)) {
+                break;
+            }
             boolean ocupado = appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                     doctorId, date, current);
             slots.add(new AvailableSlotResponse(current, next, !ocupado));

@@ -68,7 +68,7 @@ public class AuthController {
                     .map(item -> item.getAuthority().replace("ROLE_", ""))
                     .orElse("USER");
 
-            return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getUsername(), role));
+            return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), role));
 
         } catch (BadCredentialsException e) {
             // Catch the Spring Security exception and throw our specific one to be handled by GlobalExceptionHandler

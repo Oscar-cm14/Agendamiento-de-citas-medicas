@@ -43,6 +43,9 @@ export class Login {
         try {
           localStorage.setItem('token', res.token);
           localStorage.setItem('role', res.role);
+          if (res.id) {
+            localStorage.setItem('userId', res.id.toString());
+          }
         } catch (e) {}
 
         this.cargando = false;

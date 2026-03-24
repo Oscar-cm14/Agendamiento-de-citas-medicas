@@ -13,14 +13,16 @@ import { AuthService } from '../services/auth.service';
 })
 export class Formulario {
 
-  nombre = '';
+  nombres = '';
+  apellidos = '';
   email = '';
   identificacion = '';
   contrasena = '';
   celular = '';
   genero = '';
 
-  nombreError = '';
+  nombresError = '';
+  apellidosError = '';
   emailError = '';
   identificacionError = '';
   contrasenaError = '';
@@ -30,8 +32,12 @@ export class Formulario {
 
   constructor(private authService: AuthService) {}
 
-  validarNombre(valor: string) {
-    this.nombreError = valor.trim() === '' ? 'El nombre es obligatorio' : '';
+  validarNombres(valor: string) {
+    this.nombresError = valor.trim() === '' ? 'Los nombres son obligatorios' : '';
+  }
+
+  validarApellidos(valor: string) {
+    this.apellidosError = valor.trim() === '' ? 'Los apellidos son obligatorios' : '';
   }
 
   validarEmail(valor: string) {
@@ -60,12 +66,13 @@ export class Formulario {
   }
 
   registrar() {
-    this.validarNombre(this.nombre);
+    this.validarNombres(this.nombres);
+    this.validarApellidos(this.apellidos);
     this.validarEmail(this.email);
     this.validarIdentificacion(this.identificacion);
     this.validarContrasena(this.contrasena);
 
-    const hayErrores = this.nombreError || this.emailError
+    const hayErrores = this.nombresError || this.apellidosError || this.emailError
       || this.identificacionError || this.contrasenaError;
 
     if (hayErrores) return;
@@ -73,14 +80,10 @@ export class Formulario {
     this.cargando = true;
     this.errorServidor = '';
 
-    const partes = this.nombre.trim().split(' ');
-    const firstName = partes[0];
-    const lastName = partes.slice(1).join(' ') || partes[0];
-
     const datos = {
       identification: this.identificacion,
-      firstName: firstName,
-      lastName: lastName,
+      firstName: this.nombres.trim(),
+      lastName: this.apellidos.trim(),
       phone: this.celular,
       gender: this.genero,
       email: this.email,

@@ -1,7 +1,11 @@
 <section id="agendar" class="container my-5">
-  <div class="card shadow p-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">👤 Panel Usuario</h2>
+    <button class="btn btn-outline-danger" (click)="cerrarSesion()">Cerrar Sesión</button>
+  </div>
 
-    <h2 class="mb-4">Agendar Cita</h2>
+  <div class="card shadow p-4">
+    <h5 class="mb-4">Agendar Nueva Cita</h5>
 
     <div *ngIf="citaCreada" class="alert alert-success">
       ¡Cita agendada exitosamente!
@@ -14,8 +18,7 @@
       <!-- Seleccionar médico -->
       <div class="mb-3">
         <label class="form-label">Médico</label>
-        <select class="form-select" [(ngModel)]="doctorId"
-                (change)="buscarFranjas()">
+        <select class="form-select" [(ngModel)]="doctorId" (change)="buscarFranjas()">
           <option value="0">Seleccione un médico...</option>
           <option *ngFor="let m of medicos" [value]="m.id">
             {{ m.fullName }}
@@ -26,32 +29,24 @@
       <!-- Seleccionar fecha -->
       <div class="mb-3">
         <label class="form-label">Fecha</label>
-        <input type="date" class="form-control"
-               [(ngModel)]="fecha"
-               (change)="buscarFranjas()">
+        <input type="date" class="form-control" [(ngModel)]="fecha" (change)="buscarFranjas()">
       </div>
 
       <!-- Franjas disponibles -->
       <div *ngIf="franjas.length > 0" class="mb-3">
-        <label class="form-label">Franja horaria disponible</label>
+        <label class="form-label">Hora disponible *</label>
         <div class="d-flex flex-wrap gap-2">
-          <button *ngFor="let f of franjas"
-                  class="btn"
-                  [class.btn-success]="f.available && franjaSeleccionada === f"
-                  [class.btn-outline-success]="f.available && franjaSeleccionada !== f"
-                  [class.btn-secondary]="!f.available"
-                  [disabled]="!f.available"
-                  (click)="seleccionarFranja(f)">
-            {{ f.startTime }} - {{ f.endTime }}
+          <button *ngFor="let f of franjas" class="btn btn-outline-success"
+            [class.btn-success]="franjaSeleccionada === f" [class.text-white]="franjaSeleccionada === f"
+            (click)="seleccionarFranja(f)">
+            {{ f.startTime }}
           </button>
         </div>
       </div>
 
       <!-- Confirmar -->
       <div class="d-grid mt-3">
-        <button class="btn btn-outline-sesion"
-                (click)="confirmarCita()"
-                [disabled]="!franjaSeleccionada || cargando">
+        <button class="btn btn-outline-sesion" (click)="confirmarCita()" [disabled]="!franjaSeleccionada || cargando">
           {{ cargando ? 'Agendando...' : 'Confirmar Cita' }}
         </button>
       </div>
