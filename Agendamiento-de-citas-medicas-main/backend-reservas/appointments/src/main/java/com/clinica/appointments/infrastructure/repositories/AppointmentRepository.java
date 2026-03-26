@@ -20,4 +20,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     // Verificar si ya existe una cita en esa hora para ese médico
     boolean existsByDoctorIdAndDateAndStartTime(Long doctorId, LocalDate date, LocalTime startTime);
+
+    // Panel paciente: listar citas propias
+    List<Appointment> findByPatientId(Long patientId);
 }

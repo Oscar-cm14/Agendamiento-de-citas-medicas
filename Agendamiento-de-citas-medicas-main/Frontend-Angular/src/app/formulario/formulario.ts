@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-formulario',
@@ -30,7 +31,9 @@ export class Formulario {
   cargando = false;
   errorServidor = '';
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef,) { }
 
   validarNombres(valor: string) {
     this.nombresError = valor.trim() === '' ? 'Los nombres son obligatorios' : '';
@@ -95,11 +98,13 @@ export class Formulario {
       next: () => {
         this.registroExitoso = true;
         this.cargando = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.errorServidor = err.error?.message
           || 'Error al registrar. Intente nuevamente.';
         this.cargando = false;
+        this.cdr.detectChanges();
       }
     });
   }

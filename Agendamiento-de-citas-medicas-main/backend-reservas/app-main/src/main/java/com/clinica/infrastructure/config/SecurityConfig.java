@@ -2,6 +2,7 @@ package com.clinica.infrastructure.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,9 +19,6 @@ import com.clinica.users.infrastructure.security.AuthTokenFilter;
 
 import java.util.List;
 
-/**
- * Security configuration for the application.
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -28,14 +26,16 @@ public class SecurityConfig {
     private final AuthTokenFilter authTokenFilter;
     private final com.clinica.users.infrastructure.security.CustomUserDetailsService userDetailsService;
 
-    public SecurityConfig(AuthTokenFilter authTokenFilter, com.clinica.users.infrastructure.security.CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(AuthTokenFilter authTokenFilter,
+                          com.clinica.users.infrastructure.security.CustomUserDetailsService userDetailsService) {
         this.authTokenFilter = authTokenFilter;
         this.userDetailsService = userDetailsService;
     }
 
     @Bean
     public org.springframework.security.authentication.dao.DaoAuthenticationProvider authenticationProvider() {
-        org.springframework.security.authentication.dao.DaoAuthenticationProvider authProvider = new org.springframework.security.authentication.dao.DaoAuthenticationProvider();
+        org.springframework.security.authentication.dao.DaoAuthenticationProvider authProvider =
+                new org.springframework.security.authentication.dao.DaoAuthenticationProvider();
         authProvider.setUserDetailsService(this.userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
@@ -44,38 +44,54 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .headers(headers -> headers
-                        .frameOptions(frame -> frame.disable()))
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // Públicos
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/api/v1/auth/login").permitAll()
-                        .requestMatchers("/api/v1/patients/register").permitAll()
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
+            .headers(headers -> headers
+                    .frameOptions(frame -> frame.disable()))
+            .sessionManagement(session -> session
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
 
-                        // Solo ADMIN
-                        .requestMatchers("/api/v1/schedulers/register").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/configurations/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/doctors/schedules/**").hasRole("ADMIN")
+                // ── Públicos ──────────────────────────────────────────────
+                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/api/v1/auth/login").permitAll()
+                .requestMatchers("/api/v1/patients/register").permitAll()
 
-                        // ADMIN registra médicos
-                        .requestMatchers("/api/v1/doctors").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                // ── Solo ADMIN ────────────────────────────────────────────
+                .requestMatchers(HttpMethod.POST,
+                        "/api/v1/schedulers/register").hasRole("ADMIN")
+                .requestMatchers("/api/v1/configurations/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/doctors/schedules/**").hasRole("ADMIN")
 
-                        // Creadores de citas
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER")
+                // ── Médicos ───────────────────────────────────────────────
+                // Registrar médico: solo ADMIN
+                .requestMatchers(HttpMethod.POST,
+                        "/api/v1/doctors").hasRole("ADMIN")
+                // Listar médicos: todos los roles autenticados
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/doctors").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
-                        // ADMIN, SCHEDULER y PATIENT ven franjas
-                        .requestMatchers("/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
+                // ── Buscar paciente por cédula — ADMIN y SCHEDULER ────────
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER")
 
-                        // Todo lo demás autenticado
-                        .anyRequest().authenticated())
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(authTokenFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                // ── Citas ─────────────────────────────────────────────────
+                // Crear cita
+                .requestMatchers(HttpMethod.POST,
+                        "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
+                // Listar citas — PATIENT puede ver sus propias citas
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
+
+                // ── Franjas disponibles ───────────────────────────────────
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
+
+                // ── Todo lo demás requiere autenticación ──────────────────
+                .anyRequest().authenticated()
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

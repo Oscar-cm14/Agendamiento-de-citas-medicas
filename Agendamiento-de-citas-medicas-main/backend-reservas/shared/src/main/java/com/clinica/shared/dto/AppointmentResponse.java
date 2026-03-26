@@ -14,6 +14,7 @@ public record AppointmentResponse(
         Long id,
         Long doctorId,
         String doctorName,
+        String specialty,
         Long patientId,
         String patientName,
         LocalDate date,

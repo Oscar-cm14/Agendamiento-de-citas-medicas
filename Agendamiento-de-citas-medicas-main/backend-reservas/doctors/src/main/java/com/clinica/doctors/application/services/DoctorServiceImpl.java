@@ -1,6 +1,5 @@
 package com.clinica.doctors.application.services;
 
-
 import com.clinica.shared.domain.UserRole;
 import com.clinica.shared.domain.exceptions.IdentificationAlreadyExistsException;
 import com.clinica.shared.domain.exceptions.UsernameAlreadyExistsException;
@@ -17,9 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * Implementation of DoctorService.
- */
 @Service
 public class DoctorServiceImpl implements DoctorService {
 
@@ -29,9 +25,9 @@ public class DoctorServiceImpl implements DoctorService {
     private final PasswordEncoder passwordEncoder;
 
     public DoctorServiceImpl(UserRepository userRepository,
-                             DoctorRepository doctorRepository,
-                             PersonRepository personRepository,
-                             PasswordEncoder passwordEncoder) {
+            DoctorRepository doctorRepository,
+            PersonRepository personRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.doctorRepository = doctorRepository;
         this.personRepository = personRepository;
@@ -68,33 +64,32 @@ public class DoctorServiceImpl implements DoctorService {
 
         User savedUser = userRepository.save(user);
         Doctor savedDoctor = (Doctor) savedUser.getPerson();
-        String fullName = savedDoctor.getFirstName() + " " + savedDoctor.getLastName();
 
-        return new DoctorResponse(savedDoctor.getId(), fullName);
+        return new DoctorResponse(
+                savedDoctor.getId(),
+                savedDoctor.getFirstName() + " " + savedDoctor.getLastName(),
+                savedDoctor.getSpecialty());
     }
 
-    /**
-     * Lista todos los médicos activos.
-     */
-    @Override
-    public List<DoctorResponse> listDoctors() {
-        return doctorRepository.findAll()
-                .stream()
-                .map(d -> new DoctorResponse(
-                        d.getId(),
-                        d.getFirstName() + " " + d.getLastName()))
-                .toList();
-    }
+   @Override
+public List<DoctorResponse> listDoctors() {
+    return doctorRepository.findAll() 
+            .stream()
+            .map(d -> new DoctorResponse(
+                    d.getId(),
+                    d.getFirstName() + " " + d.getLastName(),
+                    d.getSpecialty()))
+            .toList();
+}
 
-    /**
-     * Obtiene un médico por ID.
-     */
     @Override
     public DoctorResponse getDoctorById(Long id) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
+
         return new DoctorResponse(
                 doctor.getId(),
-                doctor.getFirstName() + " " + doctor.getLastName());
+                doctor.getFirstName() + " " + doctor.getLastName(),
+                doctor.getSpecialty());
     }
 }

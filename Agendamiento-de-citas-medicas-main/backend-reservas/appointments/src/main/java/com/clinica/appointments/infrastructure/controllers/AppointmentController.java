@@ -1,7 +1,5 @@
 package com.clinica.appointments.infrastructure.controllers;
 
-
-
 import com.clinica.appointments.application.services.AppointmentService;
 import com.clinica.shared.dto.AppointmentRequest;
 import com.clinica.shared.dto.AppointmentResponse;
@@ -36,13 +34,22 @@ public class AppointmentController {
 
     /**
      * RF1: Lista las citas de un médico en una fecha determinada.
+     * También soporta listar las citas de un paciente (panel paciente).
      * GET /api/v1/appointments?doctorId=1&date=2026-03-21
+     * GET /api/v1/appointments?patientId=5
      */
     @GetMapping
     public ResponseEntity<List<AppointmentResponse>> listAppointments(
-            @RequestParam Long doctorId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Long patientId) {
 
+        // Panel paciente: listar sus propias citas
+        if (patientId != null) {
+            return ResponseEntity.ok(appointmentService.listAppointmentsByPatient(patientId));
+        }
+
+        // Panel agendador / médico: filtrar por doctor y fecha
         List<AppointmentResponse> appointments =
                 appointmentService.listAppointmentsByDoctorAndDate(doctorId, date);
 

@@ -2,44 +2,44 @@ package com.clinica.appointments.application.services;
 
 import com.clinica.appointments.domain.entities.Appointment;
 import com.clinica.appointments.infrastructure.repositories.AppointmentRepository;
-import com.clinica.shared.domain.entities.AppointmentStatus;                        
+import com.clinica.shared.domain.entities.AppointmentStatus;
 import com.clinica.shared.dto.AppointmentRequest;
 import com.clinica.shared.dto.AppointmentResponse;
 import com.clinica.shared.dto.AvailableSlotResponse;
-import com.clinica.doctors.domain.entities.Doctor;                         
-import com.clinica.doctors.infrastructure.repositories.DoctorRepository;  
+import com.clinica.doctors.domain.entities.Doctor;
+import com.clinica.doctors.infrastructure.repositories.DoctorRepository;
 import com.clinica.users.domain.entities.Patient;
 import com.clinica.users.infrastructure.repositories.PatientRepository;
 import com.clinica.doctors.domain.entities.DoctorSchedule;
 import com.clinica.doctors.infrastructure.repositories.DoctorScheduleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Optional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Implementation of AppointmentService.
- * Handles RF1, RF2 and RF3 business logic.
+ * Implementación de AppointmentService.
+ * Maneja la lógica de negocio de RF1, RF2 y RF3.
  */
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
 
-    private final AppointmentRepository appointmentRepository;
-    private final DoctorRepository doctorRepository;
-    private final PatientRepository patientRepository;
-    private final DoctorScheduleRepository doctorScheduleRepository;
+    private final AppointmentRepository     appointmentRepository;
+    private final DoctorRepository          doctorRepository;
+    private final PatientRepository         patientRepository;
+    private final DoctorScheduleRepository  doctorScheduleRepository;
 
     public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
                                   DoctorRepository doctorRepository,
                                   PatientRepository patientRepository,
                                   DoctorScheduleRepository doctorScheduleRepository) {
-        this.appointmentRepository = appointmentRepository;
-        this.doctorRepository = doctorRepository;
-        this.patientRepository = patientRepository;
+        this.appointmentRepository    = appointmentRepository;
+        this.doctorRepository         = doctorRepository;
+        this.patientRepository        = patientRepository;
         this.doctorScheduleRepository = doctorScheduleRepository;
     }
 
@@ -48,10 +48,8 @@ public class AppointmentServiceImpl implements AppointmentService {
      */
     @Override
     public List<AppointmentResponse> listAppointmentsByDoctorAndDate(Long doctorId, LocalDate date) {
-
-        List<Appointment> appointments = appointmentRepository.findByDoctorIdAndDate(doctorId, date);
-
-        return appointments.stream()
+        return appointmentRepository.findByDoctorIdAndDate(doctorId, date)
+                .stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -71,7 +69,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Patient patient = patientRepository.findById(request.patientId())
                 .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
 
-        // Verificar que no exista ya una cita en esa hora
+        // Verificar que la franja no esté ya ocupada
         boolean ocupado = appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                 request.doctorId(), request.date(), request.startTime());
 
@@ -79,10 +77,10 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new RuntimeException("Ya existe una cita en esa franja horaria");
         }
 
-        // Calcular hora de fin (intervalo fijo de 30 minutos por defecto)
+        // Calcular hora de fin (30 minutos por defecto)
         LocalTime endTime = request.startTime().plusMinutes(30);
 
-        // Crear la cita
+        // Construir y guardar la cita
         Appointment appointment = new Appointment();
         appointment.setDoctorId(request.doctorId());
         appointment.setPatientId(request.patientId());
@@ -98,14 +96,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     /**
-     * RF3: Returns available time slots for a doctor on a specific date.
-     * Integrates RF4 by checking the doctor's schedule configuration.
-     * Generating slots according to configured hours and intervals.
-     * Default: 8:00 to 17:00, 30 min interval, Monday to Friday.
-     *
-     * @param doctorId The ID of the doctor
-     * @param date     The date to check for available slots
-     * @return List of available slots
+     * RF3: Retorna las franjas horarias disponibles de un médico en una fecha.
+     * Usa el horario configurado del médico; si no tiene, usa valores por defecto
+     * (lunes a viernes, 8:00-17:00, intervalos de 30 minutos).
      */
     @Override
     public List<AvailableSlotResponse> getAvailableSlots(Long doctorId, LocalDate date) {
@@ -117,33 +110,38 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         LocalTime inicio;
         LocalTime fin;
-        int intervalo;
+        int       intervalo;
 
         if (scheduleOpt.isPresent()) {
             DoctorSchedule schedule = scheduleOpt.get();
-            if (schedule.getWorkingDays() == null || !schedule.getWorkingDays().contains(dayOfWeek)) {
+            // Si el día no está en los días laborables del médico, no hay franjas
+            if (schedule.getWorkingDays() == null
+                    || !schedule.getWorkingDays().contains(dayOfWeek)) {
                 return slots;
             }
-            inicio = schedule.getStartTime();
-            fin = schedule.getEndTime();
+            inicio    = schedule.getStartTime();
+            fin       = schedule.getEndTime();
             intervalo = schedule.getIntervalMinutes();
         } else {
-            if (dayOfWeek == java.time.DayOfWeek.SATURDAY || dayOfWeek == java.time.DayOfWeek.SUNDAY) {
-                return slots;
+            // Valores por defecto cuando el médico no tiene horario configurado
+            if (dayOfWeek == java.time.DayOfWeek.SATURDAY
+                    || dayOfWeek == java.time.DayOfWeek.SUNDAY) {
+                return slots; // No hay atención los fines de semana
             }
-            inicio = LocalTime.of(8, 0);
-            fin = LocalTime.of(17, 0);
+            inicio    = LocalTime.of(8, 0);
+            fin       = LocalTime.of(17, 0);
             intervalo = 30;
         }
 
+        // Generar todas las franjas y marcar cuáles están disponibles
         LocalTime current = inicio;
         while (current.isBefore(fin)) {
             LocalTime next = current.plusMinutes(intervalo);
-            if (next.isAfter(fin)) {
-                break;
-            }
+            if (next.isAfter(fin)) break;
+
             boolean ocupado = appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                     doctorId, date, current);
+
             slots.add(new AvailableSlotResponse(current, next, !ocupado));
             current = next;
         }
@@ -152,14 +150,33 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     /**
-     * Convierte una entidad Appointment a AppointmentResponse.
+     * Panel paciente: lista todas las citas de un paciente por su ID.
+     */
+    @Override
+    public List<AppointmentResponse> listAppointmentsByPatient(Long patientId) {
+        return appointmentRepository.findByPatientId(patientId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * Convierte una entidad Appointment en AppointmentResponse (DTO).
      */
     private AppointmentResponse toResponse(Appointment appointment) {
 
-        String doctorName = doctorRepository.findById(appointment.getDoctorId())
-                .map(d -> d.getFirstName() + " " + d.getLastName())
-                .orElse("Desconocido");
+        // Buscar médico para obtener nombre y especialidad
+        Doctor doctor = doctorRepository.findById(appointment.getDoctorId())
+                .orElse(null);
 
+        String doctorName = (doctor != null)
+                ? doctor.getFirstName() + " " + doctor.getLastName()
+                : "Desconocido";
+
+        // extraer specialty del médico
+        String specialty = (doctor != null) ? doctor.getSpecialty() : null;
+
+        // Buscar paciente para obtener nombre
         String patientName = patientRepository.findById(appointment.getPatientId())
                 .map(p -> p.getFirstName() + " " + p.getLastName())
                 .orElse("Desconocido");
@@ -168,6 +185,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointment.getId(),
                 appointment.getDoctorId(),
                 doctorName,
+                specialty,                   
                 appointment.getPatientId(),
                 patientName,
                 appointment.getDate(),

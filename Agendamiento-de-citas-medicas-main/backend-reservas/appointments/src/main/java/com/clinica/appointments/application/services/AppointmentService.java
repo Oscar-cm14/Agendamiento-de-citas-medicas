@@ -20,4 +20,7 @@ public interface AppointmentService {
 
     // RF3: Obtener franjas disponibles de un médico en una fecha
     List<AvailableSlotResponse> getAvailableSlots(Long doctorId, LocalDate date);
+    
+   // Panel paciente: listar sus propias citas
+    List<AppointmentResponse> listAppointmentsByPatient(Long patientId);
 }
