@@ -34,26 +34,28 @@ public class AppointmentController {
 
     /**
      * RF1: Lista las citas de un médico en una fecha determinada.
-     * También soporta listar las citas de un paciente (panel paciente).
+     * Panel agendador / médico: filtrar por doctor y fecha
      * GET /api/v1/appointments?doctorId=1&date=2026-03-21
-     * GET /api/v1/appointments?patientId=5
      */
-    @GetMapping
-    public ResponseEntity<List<AppointmentResponse>> listAppointments(
-            @RequestParam(required = false) Long doctorId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(required = false) Long patientId) {
-
-        // Panel paciente: listar sus propias citas
-        if (patientId != null) {
-            return ResponseEntity.ok(appointmentService.listAppointmentsByPatient(patientId));
-        }
-
-        // Panel agendador / médico: filtrar por doctor y fecha
+    @GetMapping(params = {"doctorId", "date"})
+    public ResponseEntity<List<AppointmentResponse>> listAppointmentsByDoctorAndDate(
+            @RequestParam Long doctorId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        
         List<AppointmentResponse> appointments =
                 appointmentService.listAppointmentsByDoctorAndDate(doctorId, date);
-
         return ResponseEntity.ok(appointments);
+    }
+
+    /**
+     * Panel paciente: listar sus propias citas
+     * GET /api/v1/appointments?patientId=5
+     */
+    @GetMapping(params = "patientId")
+    public ResponseEntity<List<AppointmentResponse>> listAppointmentsByPatient(
+            @RequestParam Long patientId) {
+            
+        return ResponseEntity.ok(appointmentService.listAppointmentsByPatient(patientId));
     }
 
     /**

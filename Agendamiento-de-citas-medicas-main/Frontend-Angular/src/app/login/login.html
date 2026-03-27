@@ -12,22 +12,16 @@
 
         <div class="mb-3">
           <label class="form-label">Usuario</label>
-          <input type="text" class="form-control"
-                 [(ngModel)]="username"
-                 placeholder="Ingrese su usuario">
+          <input type="text" class="form-control" [(ngModel)]="username" placeholder="Ingrese su usuario">
         </div>
 
         <div class="mb-3">
           <label class="form-label">Contraseña</label>
-          <input type="password" class="form-control"
-                 [(ngModel)]="password"
-                 placeholder="Ingrese su contraseña">
+          <input type="password" class="form-control" [(ngModel)]="password" placeholder="Ingrese su contraseña">
         </div>
 
         <div class="d-grid mb-3">
-          <button class="btn btn-outline-sesion"
-                  (click)="iniciarSesion()"
-                  [disabled]="cargando">
+          <button class="btn btn-outline-sesion" (click)="iniciarSesion()" [disabled]="cargando">
             {{ cargando ? 'Cargando...' : 'Iniciar Sesión' }}
           </button>
         </div>

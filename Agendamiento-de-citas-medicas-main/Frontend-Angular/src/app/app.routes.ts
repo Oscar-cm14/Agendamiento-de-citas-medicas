@@ -5,6 +5,7 @@ import { Formulario } from './formulario/formulario';
 import { AgendarCita } from './agendar-cita/agendar-cita';
 import { Admin } from './admin/admin';
 import { Agendador } from './agendador/agendador';
+import { Medico } from './medico/medico';
 
 export const routes: Routes = [
   { path: '', component: Page },
@@ -13,5 +14,6 @@ export const routes: Routes = [
   { path: 'agendar', component: AgendarCita },
   { path: 'admin', component: Admin },
   { path: 'agendador', component: Agendador },
+  { path: 'medico', component: Medico },
   { path: '**', redirectTo: '' }
 ];
