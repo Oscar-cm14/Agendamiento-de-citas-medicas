@@ -61,6 +61,9 @@ export class Login {
           case 'SCHEDULER':
             this.router.navigate(['/agendador']);
             break;
+          case 'DOCTOR':
+            this.router.navigate(['/agendador']);
+            break;
           default:
             this.router.navigate(['/agendar']);
         }
