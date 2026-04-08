@@ -1,13 +1,23 @@
-# ADR-001: Implementacion de los diagramas C4 (Expecificamente en el de Componentes)
-- Fecha : [2026-04-08]
-- Estado : [Desarrollo]
+# ADR-001: Implementación de los diagramas C4 (específicamente en el de Componentes)
+
+* **Fecha:** [2026-04-08]
+* **Estado:** [Desarrollo]
+
 ## Contexto del Problema:
->  Revisando el diagrama de componentes encontramos en el modulo del dominio falto implementar el componente "Enum Estado de Citas".
-## Decision:
->  Decidimos implementar estos estados para ayudarnos en el manejo de las citas en la parte del "Modulo de Citas" en el cual por medio de una clase Enum facilitaremos su implementacion en codigo.
-##Consecuensias:
-- ##Positivas:
-> Ahora se puede ver de manera mas sencilla el estado de las citas , ya sea aprovado o cancelado
-- ##Negativas :
-> - Tener que modificar el codigo costantemente cuando aparezcan nuevos estados como por ejemplo : citas pendientes , reprogramadas o en proceso.
-  - Problemas de compatibilidad cuando se inente usar en otras clases o cuando se haga uso de esa clase.
+
+> Revisando el diagrama de componentes, se encontró que en el módulo del dominio faltó implementar el componente **"Enum Estado de Citas"**.
+
+## Decisión:
+
+> Se decidió implementar estos estados para apoyar el manejo de las citas en el **"Módulo de Citas"**, en el cual, por medio de una clase Enum, se facilitará su implementación en código.
+
+## Consecuencias:
+
+### Positivas:
+
+> Ahora se puede visualizar de manera más sencilla el estado de las citas, ya sea aprobado o cancelado.
+
+### Negativas:
+
+> * Se requerirá modificar el código constantemente cuando aparezcan nuevos estados, como por ejemplo: citas pendientes, reprogramadas o en proceso.
+> * Posibles problemas de compatibilidad al intentar usar esta clase en otras clases o al hacer uso de la misma.
