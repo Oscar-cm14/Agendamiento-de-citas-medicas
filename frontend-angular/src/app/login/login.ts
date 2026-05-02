@@ -62,11 +62,7 @@ export class Login {
             this.router.navigate(['/agendador']);
             break;
           case 'DOCTOR':
-<<<<<<< HEAD
-            this.router.navigate(['/agendador']);
-=======
              this.router.navigate(['/medico']); 
->>>>>>> 1f90a64e (Limpieza del repo y cambios)
             break;
           default:
             this.router.navigate(['/agendar']);

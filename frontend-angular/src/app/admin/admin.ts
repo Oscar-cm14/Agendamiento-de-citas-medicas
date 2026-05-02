@@ -66,9 +66,12 @@ export class Admin implements OnInit {
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
-  ngOnInit() {
+  
+ngOnInit() {
+  if (isPlatformBrowser(this.platformId)) {
     this.cargarDoctores();
   }
+}
 
   private headers(): HttpHeaders {
     const token = isPlatformBrowser(this.platformId)
