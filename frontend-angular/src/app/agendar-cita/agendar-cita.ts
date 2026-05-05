@@ -114,7 +114,6 @@ onEspecialidadChange() {
   this.franjas           = [];
   this.franjaSeleccionada = null;
   this.fecha             = '';
-  this.error             = ''; // limpiar errores al cambiar especialidad
 
   // FIX: si hay un solo médico, auto-seleccionarlo
   // Y llamar buscarFranjas() si además ya hay fecha
@@ -168,31 +167,18 @@ onEspecialidadChange() {
 
   // ── Consulta las franjas disponibles para el médico y fecha elegidos ──
   buscarFranjas() {
-    if (!this.doctorId || !this.fecha) return;
-    this.franjas           = [];
-    this.franjaSeleccionada = null;
-    this.error             = ''; // limpiar errores anteriores antes de cada consulta
+  if (!this.doctorId || !this.fecha) return;
+  this.franjas           = [];
+  this.franjaSeleccionada = null;
 
-    this.appointmentService.obtenerFranjas(this.doctorId, this.fecha).subscribe({
-      next: (data) => {
-        // Filtrar solo las franjas disponibles; si el array viene vacío
-        // (p.ej. el día no está en los días laborables del médico) se
-        // muestra el aviso "No hay franjas" del template
-        this.franjas = (data || []).filter((f: any) => f.available);
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        // 404 significa que el médico no tiene horario configurado aún
-        if (err.status === 404) {
-          this.franjas = [];
-          this.error = 'El médico aún no tiene horario configurado.';
-        } else {
-          this.error = 'Error al cargar las franjas horarias. Intente de nuevo.';
-        }
-        this.cdr.detectChanges();
-      }
-    });
-  }
+  this.appointmentService.obtenerFranjas(this.doctorId, this.fecha).subscribe({
+    next: (data) => {
+      this.franjas = data.filter((f: any) => f.available);
+      this.cdr.detectChanges(); // FIX: forzar actualización de la vista
+    },
+    error: () => this.error = 'Error al cargar franjas'
+  });
+}
 
   // ── El paciente hace clic en un botón de hora ──
   seleccionarFranja(franja: any) {
