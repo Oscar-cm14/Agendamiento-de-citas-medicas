@@ -61,39 +61,37 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/schedulers/register").hasRole("ADMIN")
                 .requestMatchers("/api/v1/configurations/**").hasRole("ADMIN")
-
-                // Configurar horario (PUT): solo ADMIN
-                .requestMatchers(HttpMethod.PUT,
-                        "/api/v1/doctors/schedules/**").hasRole("ADMIN")
-
-                // Consultar horario (GET): ADMIN, SCHEDULER y PATIENT lo necesitan
-                // para calcular las franjas disponibles
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/doctors/schedules/**").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                .requestMatchers("/api/v1/doctors/schedules/**").hasRole("ADMIN")
 
                 // ── Médicos ───────────────────────────────────────────────
+                // Registrar médico: solo ADMIN
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/doctors").hasRole("ADMIN")
+                // Listar médicos: todos los roles autenticados
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/doctors").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
                 // ── Buscar paciente por cédula — ADMIN y SCHEDULER ────────
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER")
 
                 // ── Citas ─────────────────────────────────────────────────
+                // Crear cita
                 .requestMatchers(HttpMethod.POST,
-                        "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                        "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
+                // Listar citas — PATIENT puede ver sus propias citas
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                        "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
 
-                // ── Franjas disponibles ───────────────────────────────────
+                /// ── Franjas disponibles ───────────────────────────────────
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                         "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT")
 
                 // ── RF5: Exportar citas a CSV ─────────────────────────────
+               // Solo ADMIN, SCHEDULER y DOCTOR pueden descargar el listado
+               // Los pacientes NO tienen acceso a datos de otros pacientes
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/appointments/export").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+                 "/api/v1/appointments/export").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
 
                 // ── Todo lo demás requiere autenticación ──────────────────
                 .anyRequest().authenticated()
