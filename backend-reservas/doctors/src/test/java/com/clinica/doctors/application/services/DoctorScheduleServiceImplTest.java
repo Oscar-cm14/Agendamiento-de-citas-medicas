@@ -28,8 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Pruebas Unitarias para DoctorScheduleServiceImpl (RF4).
- * Validando Cobertura Total según la rúbrica.
+ * Pruebas Unitarias para DoctorScheduleServiceImpl
  */
 @ExtendWith(MockitoExtension.class)
 class DoctorScheduleServiceImplTest {
@@ -65,7 +64,7 @@ class DoctorScheduleServiceImplTest {
     }
 
     @Test
-    @DisplayName("Happy Path (RF4): Crea o actualiza exitosamente el horario de un médico")
+    @DisplayName("Happy Path: Crea o actualiza exitosamente el horario de un médico")
     void saveSchedule_Success() {
         // Arrange
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(mockDoctor));
@@ -93,7 +92,7 @@ class DoctorScheduleServiceImplTest {
         assertEquals(20, response.intervalMinutes());
         assertEquals(2, response.workingDays().size());
 
-        // Verificar rigurosamente que el repositorio fue llamado para guardar
+        // Verificar que el repositorio fue llamado para guardar
         verify(scheduleRepository).save(any(DoctorSchedule.class));
     }
 
