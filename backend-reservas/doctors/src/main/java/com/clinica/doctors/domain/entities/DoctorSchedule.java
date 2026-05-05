@@ -4,6 +4,7 @@ package com.clinica.doctors.domain.entities;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -39,7 +40,7 @@ public class DoctorSchedule {
     private Long doctorId;
 
     // Días de la semana que atiende
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "schedule_days",
             joinColumns = @JoinColumn(name = "schedule_id"))
     @Column(name = "day_of_week")

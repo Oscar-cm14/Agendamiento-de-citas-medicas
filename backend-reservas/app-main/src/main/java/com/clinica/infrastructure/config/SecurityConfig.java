@@ -79,7 +79,7 @@ public class SecurityConfig {
 
                 // ── Buscar paciente por cédula — ADMIN y SCHEDULER ────────
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR" )
+                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
 
                 // ── Citas ─────────────────────────────────────────────────
                 .requestMatchers(HttpMethod.POST,
