@@ -24,17 +24,6 @@ public class PatientController {
         this.patientService = patientService;
     }
 
-    /**
-     * RF3: Registra un nuevo paciente desde la web.
-     * POST /api/v1/patients/register
-     */
-    @PostMapping("/register")
-    public ResponseEntity<PatientResponse> registerPatient(
-            @Valid @RequestBody PatientRegistrationRequest request) {
-
-        PatientResponse response = patientService.registerPatient(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
 
     /**
      * Busca un paciente por número de cédula para autocompletar

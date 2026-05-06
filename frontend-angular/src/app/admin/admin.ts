@@ -38,13 +38,13 @@ export class Admin implements OnInit {
 
   doctores: any[] = [];
   DIAS_SEMANA = [
-    { value: 'MONDAY',    label: 'Lunes'      },
-    { value: 'TUESDAY',   label: 'Martes'     },
-    { value: 'WEDNESDAY', label: 'Miércoles'  },
-    { value: 'THURSDAY',  label: 'Jueves'     },
-    { value: 'FRIDAY',    label: 'Viernes'    },
-    { value: 'SATURDAY',  label: 'Sábado'     },
-    { value: 'SUNDAY',    label: 'Domingo'    }
+    { value: 'MONDAY', label: 'Lunes' },
+    { value: 'TUESDAY', label: 'Martes' },
+    { value: 'WEDNESDAY', label: 'Miércoles' },
+    { value: 'THURSDAY', label: 'Jueves' },
+    { value: 'FRIDAY', label: 'Viernes' },
+    { value: 'SATURDAY', label: 'Sábado' },
+    { value: 'SUNDAY', label: 'Domingo' }
   ];
   horarioMedico = {
     doctorId: null as number | null,
@@ -97,7 +97,7 @@ export class Admin implements OnInit {
 
   registrarMedico() {
     this.cargandoMedico = true;
-    this.errorMedico    = '';
+    this.errorMedico = '';
 
     this.http.post(`${this.apiUrl}/doctors`, this.medico,
       { headers: this.headers(), observe: 'response' }).subscribe({
@@ -115,7 +115,7 @@ export class Admin implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err) => {
-          this.errorMedico    = err.error?.message || 'Error al registrar médico';
+          this.errorMedico = err.error?.message || 'Error al registrar médico';
           this.cargandoMedico = false;
           this.cdr.detectChanges();
         }
@@ -124,7 +124,7 @@ export class Admin implements OnInit {
 
   registrarAgendador() {
     this.cargandoAgendador = true;
-    this.errorAgendador    = '';
+    this.errorAgendador = '';
 
     this.http.post(`${this.apiUrl}/schedulers/register`, this.agendador,
       { headers: this.headers(), observe: 'response' }).subscribe({
@@ -140,7 +140,7 @@ export class Admin implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err) => {
-          this.errorAgendador    = err.error?.message || 'Error al registrar agendador';
+          this.errorAgendador = err.error?.message || 'Error al registrar agendador';
           this.cargandoAgendador = false;
           this.cdr.detectChanges();
         }
@@ -149,13 +149,13 @@ export class Admin implements OnInit {
 
   guardarConfiguracion() {
     this.configGuardada = false;
-    this.errorConfig    = '';
+    this.errorConfig = '';
 
     this.http.put(`${this.apiUrl}/configurations`, this.configuracion,
       { headers: this.headers(), observe: 'response' }).subscribe({
         next: () => {
           this.configGuardada = true;
-          this.errorConfig    = '';
+          this.errorConfig = '';
           this.cdr.detectChanges();
           setTimeout(() => {
             this.configGuardada = false;
@@ -176,12 +176,12 @@ export class Admin implements OnInit {
       { headers: this.headers() }).subscribe({
         next: (data) => {
           if (data) {
-            this.horarioMedico.workingDays     = data.workingDays    || [];
+            this.horarioMedico.workingDays = data.workingDays || [];
             // FIX: tomar solo HH:mm para el input type="time"
-            this.horarioMedico.startTime       = data.startTime
+            this.horarioMedico.startTime = data.startTime
               ? data.startTime.substring(0, 5) : '08:00';
-            this.horarioMedico.endTime         = data.endTime
-              ? data.endTime.substring(0, 5)   : '17:00';
+            this.horarioMedico.endTime = data.endTime
+              ? data.endTime.substring(0, 5) : '17:00';
             this.horarioMedico.intervalMinutes = data.intervalMinutes || 30;
           }
           this.cdr.detectChanges();
@@ -189,9 +189,9 @@ export class Admin implements OnInit {
         error: (err) => {
           if (err.status === 404) {
             // Médico sin horario aún: valores por defecto
-            this.horarioMedico.workingDays     = [];
-            this.horarioMedico.startTime       = '08:00';
-            this.horarioMedico.endTime         = '17:00';
+            this.horarioMedico.workingDays = [];
+            this.horarioMedico.startTime = '08:00';
+            this.horarioMedico.endTime = '17:00';
             this.horarioMedico.intervalMinutes = 30;
           } else {
             console.error('Error cargando horario', err);
@@ -214,7 +214,7 @@ export class Admin implements OnInit {
 
   guardarHorarioMedico() {
     this.cargandoHorario = true;
-    this.errorHorario    = '';
+    this.errorHorario = '';
     this.horarioGuardado = false;
 
     // FIX: el backend Spring espera formato "HH:mm:ss"
@@ -228,10 +228,10 @@ export class Admin implements OnInit {
       : this.horarioMedico.endTime;
 
     const payload = {
-      doctorId:        this.horarioMedico.doctorId,
-      workingDays:     this.horarioMedico.workingDays,
-      startTime:       startTime,
-      endTime:         endTime,
+      doctorId: this.horarioMedico.doctorId,
+      workingDays: this.horarioMedico.workingDays,
+      startTime: startTime,
+      endTime: endTime,
       intervalMinutes: this.horarioMedico.intervalMinutes
     };
 
@@ -247,7 +247,7 @@ export class Admin implements OnInit {
           }, 3000);
         },
         error: (err) => {
-          this.errorHorario    = err.error?.message || 'Error al guardar horario';
+          this.errorHorario = err.error?.message || 'Error al guardar horario';
           this.cargandoHorario = false;
           this.cdr.detectChanges();
         }
