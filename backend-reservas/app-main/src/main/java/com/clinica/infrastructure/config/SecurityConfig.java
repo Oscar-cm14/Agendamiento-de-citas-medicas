@@ -58,6 +58,18 @@ public class SecurityConfig {
                 // Crear cita
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                // Reagendar: ADMIN, SCHEDULER y DOCTOR
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+                // Cancelar con motivo: ADMIN, SCHEDULER, PATIENT y DOCTOR
+                .requestMatchers(HttpMethod.PATCH,
+                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                // Reagendar cita: ADMIN y SCHEDULER
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER")
+                // Reagendar cita: ADMIN y SCHEDULER
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER")
                 // Listar citas
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
@@ -84,7 +96,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:4200"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
