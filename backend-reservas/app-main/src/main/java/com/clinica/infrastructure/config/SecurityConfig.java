@@ -3,43 +3,29 @@ package com.clinica.infrastructure.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import com.clinica.users.infrastructure.security.AuthTokenFilter;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
-    private final AuthTokenFilter authTokenFilter;
-    private final com.clinica.users.infrastructure.security.CustomUserDetailsService userDetailsService;
-
-    public SecurityConfig(AuthTokenFilter authTokenFilter,
-                          com.clinica.users.infrastructure.security.CustomUserDetailsService userDetailsService) {
-        this.authTokenFilter = authTokenFilter;
-        this.userDetailsService = userDetailsService;
-    }
-
-    @Bean
-    public org.springframework.security.authentication.dao.DaoAuthenticationProvider authenticationProvider() {
-        org.springframework.security.authentication.dao.DaoAuthenticationProvider authProvider =
-                new org.springframework.security.authentication.dao.DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(this.userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -54,34 +40,22 @@ public class SecurityConfig {
 
                 // ── Públicos ──────────────────────────────────────────────
                 .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/api/v1/auth/login").permitAll()
-                .requestMatchers("/api/v1/patients/register").permitAll()
 
                 // ── Solo ADMIN ────────────────────────────────────────────
-                .requestMatchers(HttpMethod.POST,
-                        "/api/v1/schedulers/register").hasRole("ADMIN")
                 .requestMatchers("/api/v1/configurations/**").hasRole("ADMIN")
-
-                // Configurar horario (PUT): solo ADMIN
-                .requestMatchers(HttpMethod.PUT,
-                        "/api/v1/doctors/schedules/**").hasRole("ADMIN")
-
-                // Consultar horario (GET): ADMIN, SCHEDULER y PATIENT lo necesitan
-                // para calcular las franjas disponibles
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/doctors/schedules/**").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                .requestMatchers("/api/v1/doctors/schedules/**").hasRole("ADMIN")
 
                 // ── Médicos ───────────────────────────────────────────────
-                .requestMatchers(HttpMethod.POST,
-                        "/api/v1/doctors").hasRole("ADMIN")
+                // Listar médicos: todos los roles autenticados
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/doctors").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
                 // ── Buscar paciente por cédula — ADMIN y SCHEDULER ────────
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER")
 
                 // ── Citas ─────────────────────────────────────────────────
+                // Crear cita
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
                 // Reagendar: ADMIN, SCHEDULER y DOCTOR
@@ -96,22 +70,24 @@ public class SecurityConfig {
                 // Reagendar cita: ADMIN y SCHEDULER
                 .requestMatchers(HttpMethod.PUT,
                         "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER")
+                // Listar citas
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
-                // ── Franjas disponibles ───────────────────────────────────
+                /// ── Franjas disponibles ───────────────────────────────────
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                         "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
                 // ── RF5: Exportar citas a CSV ─────────────────────────────
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/appointments/export").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+                 "/api/v1/appointments/export").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
 
                 // ── Todo lo demás requiere autenticación ──────────────────
                 .anyRequest().authenticated()
             )
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+            );
 
         return http.build();
     }
@@ -129,14 +105,42 @@ public class SecurityConfig {
         return source;
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(4);
+    private Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter() {
+        JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
+        jwtConverter.setJwtGrantedAuthoritiesConverter(new KeycloakRealmRoleConverter());
+        return jwtConverter;
+    }
+
+    static class KeycloakRealmRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+        @Override
+        @SuppressWarnings("unchecked")
+        public Collection<GrantedAuthority> convert(Jwt jwt) {
+            Map<String, Object> realmAccess = (Map<String, Object>) jwt.getClaims().get("realm_access");
+
+            if (realmAccess == null || realmAccess.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            Collection<String> roles = (Collection<String>) realmAccess.get("roles");
+            if (roles == null) {
+                return Collections.emptyList();
+            }
+
+            return roles.stream()
+                    .map(roleName -> "ROLE_" + roleName)
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
+        }
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
+    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(4);
+    }
+
+    @Bean
+    public org.springframework.security.authentication.AuthenticationManager authenticationManager(
+            org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }
