@@ -40,47 +40,46 @@ public class SecurityConfig {
 
                 // ── Públicos ──────────────────────────────────────────────
                 .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/patients/register").permitAll()
 
                 // ── Solo ADMIN ────────────────────────────────────────────
                 .requestMatchers("/api/v1/configurations/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/doctors/schedules/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/schedulers/register").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/doctors").hasRole("ADMIN")
 
                 // ── Médicos ───────────────────────────────────────────────
-                // Listar médicos: todos los roles autenticados
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/doctors").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
-
-                // ── Buscar paciente por cédula — ADMIN y SCHEDULER ────────
                 .requestMatchers(HttpMethod.GET,
-                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER")
+                        "/api/v1/doctors/by-user/**").hasAnyRole("ADMIN", "DOCTOR")
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/doctors/me").hasRole("DOCTOR")
+
+                // ── Pacientes ─────────────────────────────────────────────
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
+                // NUEVO: buscar paciente por username para el login
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/patients/by-username").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
 
                 // ── Citas ─────────────────────────────────────────────────
-                // Crear cita
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
-                // Reagendar: ADMIN, SCHEDULER y DOCTOR
                 .requestMatchers(HttpMethod.PUT,
                         "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
-                // Cancelar con motivo: ADMIN, SCHEDULER, PATIENT y DOCTOR
                 .requestMatchers(HttpMethod.PATCH,
                         "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
-                // Reagendar cita: ADMIN y SCHEDULER
-                .requestMatchers(HttpMethod.PUT,
-                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER")
-                // Reagendar cita: ADMIN y SCHEDULER
-                .requestMatchers(HttpMethod.PUT,
-                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER")
-                // Listar citas
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
-                /// ── Franjas disponibles ───────────────────────────────────
+                // ── Franjas disponibles ───────────────────────────────────
                 .requestMatchers(HttpMethod.GET,
-                         "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                        "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
-                // ── RF5: Exportar citas a CSV ─────────────────────────────
+                // ── Exportar citas a CSV ──────────────────────────────────
                 .requestMatchers(HttpMethod.GET,
-                 "/api/v1/appointments/export").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+                        "/api/v1/appointments/export").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
 
                 // ── Todo lo demás requiere autenticación ──────────────────
                 .anyRequest().authenticated()

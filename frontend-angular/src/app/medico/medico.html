@@ -115,13 +115,9 @@
                 <button
                   *ngIf="cita.status === 'SCHEDULED'"
                   class="btn btn-sm btn-outline-danger"
-                  (click)="cancelarCita(cita.id)"
-                  [disabled]="cancelandoCitaId === cita.id"
+                  (click)="abrirCancelacion(cita)"
                   title="Cancelar cita">
-                  <span *ngIf="cancelandoCitaId !== cita.id">❌ Cancelar</span>
-                  <span *ngIf="cancelandoCitaId === cita.id">
-                    <span class="spinner-border spinner-border-sm me-1"></span>...
-                  </span>
+                  ❌ Cancelar
                 </button>
                 <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
               </td>
@@ -203,17 +199,13 @@
                 <td>{{ cita.notes || '—' }}</td>
                 <td>
                   <button
-                    *ngIf="cita.status === 'SCHEDULED'"
-                    class="btn btn-sm btn-outline-danger"
-                    (click)="cancelarCita(cita.id)"
-                    [disabled]="cancelandoCitaId === cita.id"
-                    title="Cancelar cita">
-                    <span *ngIf="cancelandoCitaId !== cita.id">❌ Cancelar</span>
-                    <span *ngIf="cancelandoCitaId === cita.id">
-                      <span class="spinner-border spinner-border-sm me-1"></span>...
-                    </span>
-                  </button>
-                  <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
+                  *ngIf="cita.status === 'SCHEDULED'"
+                  class="btn btn-sm btn-outline-danger"
+                  (click)="abrirCancelacion(cita)"
+                  title="Cancelar cita">
+                  ❌ Cancelar
+                </button>
+                <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
                 </td>
               </tr>
             </tbody>
@@ -506,4 +498,48 @@
     </div>
   </div>
 
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- MODAL DE CANCELACIÓN                                        -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div *ngIf="citaCancelando"
+       class="modal d-block"
+       style="background:rgba(0,0,0,0.5); position:fixed; inset:0; z-index:1050;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">❌ Cancelar Cita</h5>
+          <button class="btn-close" (click)="cerrarCancelacion()"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1">
+            <strong>Médico:</strong> {{ citaCancelando.doctorName || medicoNombre }}<br>
+            <strong>Fecha:</strong> {{ citaCancelando.date }} a las {{ citaCancelando.startTime }}
+          </p>
+          <hr>
+          <label class="form-label fw-semibold">Motivo de cancelación *</label>
+          <textarea
+            class="form-control"
+            rows="3"
+            [(ngModel)]="motivoCancelacion"
+            placeholder="Ej: No podré asistir por viaje de trabajo...">
+          </textarea>
+          <div *ngIf="errorCancelacion" class="alert alert-danger mt-2 py-2">
+            {{ errorCancelacion }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarCancelacion()"
+                  [disabled]="cancelando">Volver</button>
+          <button class="btn btn-danger" (click)="confirmarCancelacion()"
+                  [disabled]="cancelando || !motivoCancelacion.trim()">
+            <span *ngIf="!cancelando">Confirmar cancelación</span>
+            <span *ngIf="cancelando">
+              <span class="spinner-border spinner-border-sm me-1"></span>Cancelando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

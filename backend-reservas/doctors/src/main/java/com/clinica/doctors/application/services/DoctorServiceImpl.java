@@ -5,6 +5,7 @@ import com.clinica.shared.domain.exceptions.IdentificationAlreadyExistsException
 import com.clinica.shared.domain.exceptions.UsernameAlreadyExistsException;
 import com.clinica.shared.dto.DoctorRegistrationRequest;
 import com.clinica.shared.dto.DoctorResponse;
+import com.clinica.shared.infrastructure.keycloak.KeycloakAdminService;
 import com.clinica.doctors.domain.entities.Doctor;
 import com.clinica.doctors.infrastructure.repositories.DoctorRepository;
 import com.clinica.users.domain.entities.User;
@@ -23,15 +24,18 @@ public class DoctorServiceImpl implements DoctorService {
     private final DoctorRepository doctorRepository;
     private final PersonRepository personRepository;
     private final PasswordEncoder passwordEncoder;
+    private final KeycloakAdminService keycloakAdminService;
 
     public DoctorServiceImpl(UserRepository userRepository,
             DoctorRepository doctorRepository,
             PersonRepository personRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            KeycloakAdminService keycloakAdminService) {
         this.userRepository = userRepository;
         this.doctorRepository = doctorRepository;
         this.personRepository = personRepository;
         this.passwordEncoder = passwordEncoder;
+        this.keycloakAdminService = keycloakAdminService;
     }
 
     @Override
@@ -45,6 +49,7 @@ public class DoctorServiceImpl implements DoctorService {
             throw new IdentificationAlreadyExistsException("Identification already exists.");
         }
 
+        // 1. Guardar en la base de datos local (H2)
         Doctor doctor = new Doctor();
         doctor.setIdentification(request.identification());
         doctor.setFirstName(request.firstName());
@@ -64,6 +69,16 @@ public class DoctorServiceImpl implements DoctorService {
 
         User savedUser = userRepository.save(user);
         Doctor savedDoctor = (Doctor) savedUser.getPerson();
+
+        // 2. Crear el usuario en Keycloak con rol DOCTOR
+        keycloakAdminService.createUser(
+                request.username(),
+                request.password(),
+                request.email(),
+                request.firstName(),
+                request.lastName(),
+                "DOCTOR"
+        );
 
         return new DoctorResponse(
                 savedDoctor.getId(),
@@ -86,6 +101,36 @@ public List<DoctorResponse> listDoctors() {
     public DoctorResponse getDoctorById(Long id) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
+
+        return new DoctorResponse(
+                doctor.getId(),
+                doctor.getFirstName() + " " + doctor.getLastName(),
+                doctor.getSpecialty());
+    }
+
+    @Override
+    public DoctorResponse getDoctorByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (!(user.getPerson() instanceof Doctor doctor)) {
+            throw new RuntimeException("El usuario no es un médico");
+        }
+
+        return new DoctorResponse(
+                doctor.getId(),
+                doctor.getFirstName() + " " + doctor.getLastName(),
+                doctor.getSpecialty());
+    }
+
+    @Override
+    public DoctorResponse getDoctorByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
+
+        if (!(user.getPerson() instanceof Doctor doctor)) {
+            throw new RuntimeException("El usuario no es un médico");
+        }
 
         return new DoctorResponse(
                 doctor.getId(),

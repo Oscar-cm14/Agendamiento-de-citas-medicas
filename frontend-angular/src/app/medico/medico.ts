@@ -40,8 +40,11 @@ export class Medico implements OnInit {
   exportando         = false;
   mensajeExport      = '';
 
-  // ── Cancelar cita ─────────────────────────────────────────
-  cancelandoCitaId: number | null = null;
+  // ── Cancelar cita (modal igual al paciente) ───────────────
+  citaCancelando: any = null;
+  motivoCancelacion = '';
+  errorCancelacion = '';
+  cancelando = false;
   mensajeCancelacion = '';
 
   // ── Pestaña: Agendar nueva cita ───────────────────────────
@@ -108,28 +111,22 @@ export class Medico implements OnInit {
 
   // ── Carga datos del médico autenticado ─────────────────────
   cargarDatosMedico() {
-    const userId = localStorage.getItem('userId');
-    if (!userId) return;
-
-    this.http.get<any>(`${this.apiUrl}/doctors/by-user/${userId}`,
+    // Usa /doctors/me — el backend lee el username del JWT de Keycloak
+    // No se necesita userId en localStorage
+    this.http.get<any>(`${this.apiUrl}/doctors/me`,
       { headers: this.headers() }).subscribe({
         next: (data) => {
           this.medicoId           = data.id;
           this.medicoNombre       = data.fullName
             || `${data.firstName} ${data.lastName}`;
           this.medicoEspecialidad = data.specialty || '';
-          // Guardar nombre en localStorage para persistencia
           localStorage.setItem('nombreUsuario', this.medicoNombre);
-          // Preseleccionar el propio médico en el form de agendar
           this.nuevaCita.doctorId = data.id;
           this.cdr.detectChanges();
           this.cargarCitasHoy();
         },
         error: () => {
-          // Fallback: intentar leer nombre guardado en localStorage
-          this.medicoNombre       = localStorage.getItem('nombreUsuario') || '';
-          this.medicoId           = Number(userId);
-          this.nuevaCita.doctorId = Number(userId);
+          this.medicoNombre = localStorage.getItem('nombreUsuario') || '';
           this.cargarCitasHoy();
         }
       });
@@ -180,33 +177,49 @@ export class Medico implements OnInit {
       });
   }
 
-  // ── Cancelar cita (usado en citas de hoy y en búsqueda por fecha) ──
-  cancelarCita(citaId: number) {
-    if (!confirm('¿Está seguro de que desea cancelar esta cita?')) return;
-
-    this.cancelandoCitaId  = citaId;
-    this.mensajeCancelacion = '';
+  // ── Cancelar cita (modal) ──────────────────────────────────
+  abrirCancelacion(cita: any) {
+    this.citaCancelando = cita;
+    this.motivoCancelacion = '';
+    this.errorCancelacion = '';
     this.cdr.detectChanges();
+  }
+
+  cerrarCancelacion() {
+    this.citaCancelando = null;
+    this.motivoCancelacion = '';
+    this.errorCancelacion = '';
+  }
+
+  confirmarCancelacion() {
+    if (!this.citaCancelando) return;
+    if (!this.motivoCancelacion.trim()) {
+      this.errorCancelacion = 'Debe indicar el motivo de cancelación.';
+      return;
+    }
+
+    this.cancelando = true;
+    this.errorCancelacion = '';
 
     this.http.patch(
-      `${this.apiUrl}/appointments/${citaId}/cancel`,
-      {},
+      `${this.apiUrl}/appointments/${this.citaCancelando.id}/cancel`,
+      { reason: this.motivoCancelacion },
       { headers: this.headers() }
     ).subscribe({
       next: () => {
-        this.cancelandoCitaId   = null;
+        this.cancelando = false;
         this.mensajeCancelacion = '✅ Cita cancelada exitosamente.';
+        this.citaCancelando = null;
+        this.motivoCancelacion = '';
         this.cdr.detectChanges();
-        // Refrescar listas según pestaña activa
         this.cargarCitasHoy();
         if (this.fechaBuscar) this.buscarCitas();
         setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 4000);
       },
       error: (err) => {
-        this.cancelandoCitaId   = null;
-        this.mensajeCancelacion = '❌ ' + (err.error?.message || 'Error al cancelar la cita.');
+        this.cancelando = false;
+        this.errorCancelacion = err.error?.message || 'Error al cancelar la cita.';
         this.cdr.detectChanges();
-        setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 5000);
       }
     });
   }

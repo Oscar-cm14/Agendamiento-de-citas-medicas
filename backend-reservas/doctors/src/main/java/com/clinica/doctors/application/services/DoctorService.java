@@ -13,9 +13,11 @@ public interface DoctorService {
 
     DoctorResponse registerDoctor(DoctorRegistrationRequest request);
 
-   
     List<DoctorResponse> listDoctors();
 
-  
     DoctorResponse getDoctorById(Long id);
+
+    DoctorResponse getDoctorByUserId(Long userId);
+
+    DoctorResponse getDoctorByUsername(String username);
 }

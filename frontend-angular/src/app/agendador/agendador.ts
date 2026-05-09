@@ -38,8 +38,11 @@ export class Agendador implements OnInit {
   mensajeExport = '';
 
 
-  // ── Cancelar cita ──
-  cancelandoCitaId: number | null = null;
+  // ── Cancelar cita (modal igual al paciente) ──
+  citaCancelando: any = null;
+  motivoCancelacion = '';
+  errorCancelacion = '';
+  cancelando = false;
   mensajeCancelacion = '';
 
   // ── Variables pestaña REAGENDAR ────────────────────────────
@@ -108,33 +111,26 @@ export class Agendador implements OnInit {
   }
 
   // ── Carga el nombre del agendador desde el token JWT o localStorage ──
+  // ── Carga el nombre real del agendador desde el JWT de Keycloak ──
   cargarNombreAgendador() {
-    // Intentar leer el nombre guardado previamente
-    const nombreGuardado = localStorage.getItem('nombreUsuario');
-    if (nombreGuardado) {
-      this.agendadorNombre = nombreGuardado;
-      this.cdr.detectChanges();
-      return;
-    }
-
-    // Si no hay nombre guardado, intentar parsear el token JWT
     try {
       const token = localStorage.getItem('token') || '';
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        // Keycloak suele incluir preferred_username, name, given_name
-        this.agendadorNombre =
-          payload.name ||
-          payload.preferred_username ||
-          payload.given_name ||
-          payload.sub ||
-          '';
+        // Keycloak incluye given_name y family_name con el nombre real registrado
+        const givenName  = payload.given_name  || '';
+        const familyName = payload.family_name || '';
+        if (givenName || familyName) {
+          this.agendadorNombre = (givenName + ' ' + familyName).trim();
+        } else {
+          this.agendadorNombre = payload.name || payload.preferred_username || '';
+        }
         if (this.agendadorNombre) {
           localStorage.setItem('nombreUsuario', this.agendadorNombre);
         }
       }
     } catch (e) {
-      // No se pudo parsear el token
+      this.agendadorNombre = localStorage.getItem('nombreUsuario') || '';
     }
     this.cdr.detectChanges();
   }
@@ -213,32 +209,48 @@ export class Agendador implements OnInit {
       });
   }
 
-  // ── Cancelar cita ──
-  cancelarCita(citaId: number) {
-    if (!confirm('¿Está seguro de que desea cancelar esta cita?')) return;
-
-    this.cancelandoCitaId = citaId;
-    this.mensajeCancelacion = '';
+  // ── Cancelar cita (modal) ──
+  abrirCancelacion(cita: any) {
+    this.citaCancelando = cita;
+    this.motivoCancelacion = '';
+    this.errorCancelacion = '';
     this.cdr.detectChanges();
+  }
+
+  cerrarCancelacion() {
+    this.citaCancelando = null;
+    this.motivoCancelacion = '';
+    this.errorCancelacion = '';
+  }
+
+  confirmarCancelacion() {
+    if (!this.citaCancelando) return;
+    if (!this.motivoCancelacion.trim()) {
+      this.errorCancelacion = 'Debe indicar el motivo de cancelación.';
+      return;
+    }
+
+    this.cancelando = true;
+    this.errorCancelacion = '';
 
     this.http.patch(
-      `${this.apiUrl}/appointments/${citaId}/cancel`,
-      {},
+      `${this.apiUrl}/appointments/${this.citaCancelando.id}/cancel`,
+      { reason: this.motivoCancelacion },
       { headers: this.headers() }
     ).subscribe({
       next: () => {
-        this.cancelandoCitaId = null;
+        this.cancelando = false;
         this.mensajeCancelacion = '✅ Cita cancelada exitosamente.';
+        this.citaCancelando = null;
+        this.motivoCancelacion = '';
         this.cdr.detectChanges();
-        // Refrescar la lista según los filtros actuales
         if (this.doctorIdBuscar && this.fechaBuscar) this.buscarCitas();
         setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 4000);
       },
       error: (err) => {
-        this.cancelandoCitaId = null;
-        this.mensajeCancelacion = '❌ ' + (err.error?.message || 'Error al cancelar la cita.');
+        this.cancelando = false;
+        this.errorCancelacion = err.error?.message || 'Error al cancelar la cita.';
         this.cdr.detectChanges();
-        setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 5000);
       }
     });
   }

@@ -33,7 +33,7 @@ export class Formulario {
 
   constructor(
     private authService: AuthService,
-    private cdr: ChangeDetectorRef,) { }
+    private cdr: ChangeDetectorRef) { }
 
   validarNombres(valor: string) {
     this.nombresError = valor.trim() === '' ? 'Los nombres son obligatorios' : '';
@@ -95,7 +95,12 @@ export class Formulario {
     };
 
     this.authService.registrarPaciente(datos).subscribe({
-      next: () => {
+      // FIX: el backend devuelve { id, fullName, username, email }
+      // guardamos el id en localStorage para usarlo al agendar citas
+      next: (res: any) => {
+        if (res?.id) {
+          localStorage.setItem('userId', String(res.id));
+        }
         this.registroExitoso = true;
         this.cargando = false;
         this.cdr.detectChanges();

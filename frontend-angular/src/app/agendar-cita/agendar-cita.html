@@ -6,7 +6,12 @@
 
   <!-- ================= HEADER ================= -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">👤 Panel Paciente</h2>
+    <div>
+      <h2 class="mb-0">👤 Panel Paciente</h2>
+      <small class="text-muted" *ngIf="pacienteNombre">
+        Bienvenido, <strong>{{ pacienteNombre }}</strong>
+      </small>
+    </div>
     <button class="btn btn-outline-danger" (click)="cerrarSesion()">
       Cerrar Sesión
     </button>

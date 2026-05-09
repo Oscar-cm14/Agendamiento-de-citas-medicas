@@ -2,6 +2,7 @@
 // agendar-cita.ts  –  Panel del Paciente
 // ============================================================
 
+
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -36,6 +37,9 @@ export class AgendarCita implements OnInit {
   errorCitas = '';
   pestanaActiva = 'agendar';
 
+  // ── Nombre del paciente ──
+  pacienteNombre = '';
+
   // ── Cancelación ──
   citaCancelando: any = null;
   motivoCancelacion = '';
@@ -54,9 +58,60 @@ export class AgendarCita implements OnInit {
   ) { }
 
   ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      this.patientId = this.authService.obtenerUserId();
-      this.cargarMedicos();
+  if (isPlatformBrowser(this.platformId)) {
+    // Intentar obtener patientId del localStorage
+    this.patientId = this.authService.obtenerUserId();
+
+    // Si no está en localStorage, buscarlo en el backend usando el username del JWT
+    if (!this.patientId) {
+      this.resolverPatientId();
+    }
+
+    this.cargarNombrePaciente();
+    this.cargarMedicos();
+  }
+}
+
+// NUEVO: resuelve el patientId desde el backend usando el username del token
+resolverPatientId() {
+  try {
+    // Usar el username guardado al hacer login (es la cédula), NO el preferred_username del JWT
+    // (Keycloak guarda el email como preferred_username, pero la BD busca por cédula)
+    const username = localStorage.getItem('username') || '';
+    if (!username) return;
+
+    this.http.get<any>(
+      `${this.apiUrl}/patients/by-username?username=${username}`,
+      { headers: this.headers() }
+    ).subscribe({
+      next: (patient) => {
+        if (patient?.id) {
+          this.patientId = patient.id;
+          localStorage.setItem('userId', String(patient.id));
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {} // silencioso, el error ya se muestra en confirmarCita()
+    });
+  } catch (e) {}
+}
+
+  // ── Carga el nombre del paciente desde el JWT de Keycloak ──
+  cargarNombrePaciente() {
+    try {
+      const token = this.authService.obtenerToken() || '';
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const givenName  = payload.given_name  || '';
+        const familyName = payload.family_name || '';
+        if (givenName || familyName) {
+          this.pacienteNombre = (givenName + ' ' + familyName).trim();
+        } else {
+          this.pacienteNombre = payload.name || payload.preferred_username || '';
+        }
+      }
+    } catch (e) {
+      this.pacienteNombre = '';
     }
   }
 
