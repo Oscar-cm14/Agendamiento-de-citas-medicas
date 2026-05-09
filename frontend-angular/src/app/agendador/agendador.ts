@@ -21,6 +21,9 @@ export class Agendador implements OnInit {
   medicos: any[] = [];
   especialidades: string[] = [];
 
+  // ── Nombre del agendador autenticado ──
+  agendadorNombre = '';
+
   // ── Variables pestaña LISTAR ──
   especialidadBuscar = '';
   medicosFiltradosBuscar: any[] = [];
@@ -34,28 +37,26 @@ export class Agendador implements OnInit {
   exportando = false;
   mensajeExport = '';
 
-  // ── Variables pestaña REAGENDAR ────────────────────────────
-  reagEspecialidad        = '';
-  reagMedicosFiltrados: any[] = [];
-  reagDoctorId            = 0;
-  reagBuscarFecha         = '';
-  reagCitas: any[]        = [];
-  reagBuscando            = false;
-  reagError               = '';
-  reagCitaSeleccionada: any = null;
-  reagNuevaFecha          = '';
-  reagFranjas: any[]      = [];
-  reagNuevaHora           = '';
-  reagCargandoFranjas     = false;
-  reagGuardando           = false;
-  reagExito               = '';
-  reagErrorGuardar        = '';
+  // ── Cancelar cita ──
+  cancelandoCitaId: number | null = null;
+  mensajeCancelacion = '';
 
-  // ── Cancelación ──
-  cancelCita: any       = null;
-  cancelMotivo          = '';
-  cancelError           = '';
-  cancelando            = false;
+  // ── Variables pestaña REAGENDAR ────────────────────────────
+  reagEspecialidad = '';
+  reagMedicosFiltrados: any[] = [];
+  reagDoctorId = 0;
+  reagBuscarFecha = '';
+  reagCitas: any[] = [];
+  reagBuscando = false;
+  reagError = '';
+  reagCitaSeleccionada: any = null;
+  reagNuevaFecha = '';
+  reagFranjas: any[] = [];
+  reagNuevaHora = '';
+  reagCargandoFranjas = false;
+  reagGuardando = false;
+  reagExito = '';
+  reagErrorGuardar = '';
 
   // ── Variables pestaña CREAR ──
   nuevaCita = {
@@ -93,6 +94,7 @@ export class Agendador implements OnInit {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
+      this.cargarNombreAgendador();
       this.cargarMedicos();
     }
   }
@@ -102,9 +104,43 @@ export class Agendador implements OnInit {
     return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 
+  // ── Carga el nombre del agendador desde el token JWT o localStorage ──
+  cargarNombreAgendador() {
+    // Intentar leer el nombre guardado previamente
+    const nombreGuardado = localStorage.getItem('nombreUsuario');
+    if (nombreGuardado) {
+      this.agendadorNombre = nombreGuardado;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Si no hay nombre guardado, intentar parsear el token JWT
+    try {
+      const token = localStorage.getItem('token') || '';
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        // Keycloak suele incluir preferred_username, name, given_name
+        this.agendadorNombre =
+          payload.name ||
+          payload.preferred_username ||
+          payload.given_name ||
+          payload.sub ||
+          '';
+        if (this.agendadorNombre) {
+          localStorage.setItem('nombreUsuario', this.agendadorNombre);
+        }
+      }
+    } catch (e) {
+      // No se pudo parsear el token
+    }
+    this.cdr.detectChanges();
+  }
+
   cerrarSesion() {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('nombreUsuario');
     this.router.navigate(['/']);
   }
 
@@ -136,10 +172,10 @@ export class Agendador implements OnInit {
     this.medicosFiltradosNueva = this.medicos.filter(
       m => m.specialty === this.especialidadNuevaCita
     );
-    this.nuevaCita.doctorId   = 0;
-    this.franjas              = [];
-    this.nuevaCita.startTime  = '';
-    this.nuevaCita.fecha      = '';
+    this.nuevaCita.doctorId = 0;
+    this.franjas = [];
+    this.nuevaCita.startTime = '';
+    this.nuevaCita.fecha = '';
 
     if (this.medicosFiltradosNueva.length === 1) {
       this.nuevaCita.doctorId = this.medicosFiltradosNueva[0].id;
@@ -150,43 +186,71 @@ export class Agendador implements OnInit {
   // ── RF1: Buscar citas ──
   buscarCitas() {
     if (!this.doctorIdBuscar || !this.fechaBuscar) return;
-    this.buscando      = true;
-    this.errorBuscar   = '';
-    this.citas         = [];
+    this.buscando = true;
+    this.errorBuscar = '';
+    this.citas = [];
     this.mensajeExport = '';
 
     const params = new HttpParams()
       .set('doctorId', this.doctorIdBuscar)
-      .set('date',     this.fechaBuscar);
+      .set('date', this.fechaBuscar);
 
     this.http.get<any[]>(`${this.apiUrl}/appointments`,
       { headers: this.headers(), params }).subscribe({
         next: (data) => {
-          this.citas    = data;
+          this.citas = data;
           this.buscando = false;
           this.cdr.detectChanges();
         },
         error: () => {
           this.errorBuscar = 'Error al buscar citas';
-          this.buscando    = false;
+          this.buscando = false;
           this.cdr.detectChanges();
         }
       });
   }
 
+  // ── Cancelar cita ──
+  cancelarCita(citaId: number) {
+    if (!confirm('¿Está seguro de que desea cancelar esta cita?')) return;
+
+    this.cancelandoCitaId = citaId;
+    this.mensajeCancelacion = '';
+    this.cdr.detectChanges();
+
+    this.http.patch(
+      `${this.apiUrl}/appointments/${citaId}/cancel`,
+      {},
+      { headers: this.headers() }
+    ).subscribe({
+      next: () => {
+        this.cancelandoCitaId = null;
+        this.mensajeCancelacion = '✅ Cita cancelada exitosamente.';
+        this.cdr.detectChanges();
+        // Refrescar la lista según los filtros actuales
+        if (this.doctorIdBuscar && this.fechaBuscar) this.buscarCitas();
+        setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 4000);
+      },
+      error: (err) => {
+        this.cancelandoCitaId = null;
+        this.mensajeCancelacion = '❌ ' + (err.error?.message || 'Error al cancelar la cita.');
+        this.cdr.detectChanges();
+        setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 5000);
+      }
+    });
+  }
+
   // ── RF5: Exportar CSV ──
-  // FIX: se agrega this.exportando = false en el next()
-  // para que el botón deje de mostrar "Exportando..."
   exportarCsv() {
     if (!this.doctorIdBuscar || !this.fechaBuscar) return;
 
-    this.exportando    = true;
+    this.exportando = true;
     this.mensajeExport = '';
     this.cdr.detectChanges();
 
     const params = new HttpParams()
       .set('doctorId', this.doctorIdBuscar)
-      .set('date',     this.fechaBuscar);
+      .set('date', this.fechaBuscar);
 
     this.http.get(`${this.apiUrl}/appointments/export`,
       {
@@ -195,16 +259,14 @@ export class Agendador implements OnInit {
         responseType: 'blob'
       }).subscribe({
         next: (blob: Blob) => {
-          // Crear URL temporal y disparar descarga
-          const url  = window.URL.createObjectURL(blob);
+          const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
-          link.href  = url;
+          link.href = url;
           link.download = `citas_${this.fechaBuscar}.csv`;
           link.click();
           window.URL.revokeObjectURL(url);
 
-          // FIX: resetear el botón y mostrar mensaje de éxito
-          this.exportando    = false;
+          this.exportando = false;
           this.mensajeExport = '✅ CSV descargado exitosamente';
           this.cdr.detectChanges();
           setTimeout(() => {
@@ -213,7 +275,7 @@ export class Agendador implements OnInit {
           }, 4000);
         },
         error: () => {
-          this.exportando    = false;
+          this.exportando = false;
           this.mensajeExport = '❌ Error al exportar el CSV';
           this.cdr.detectChanges();
         }
@@ -221,14 +283,13 @@ export class Agendador implements OnInit {
   }
 
   // ── Autocompletado por cédula ──
-  // FIX: se agrega cdr.detectChanges() para forzar refresco de la vista
   buscarPacientePorCedula() {
     const cedula = this.nuevaCita.identification.trim();
     if (!cedula) return;
 
-    this.buscandoPaciente   = true;
+    this.buscandoPaciente = true;
     this.pacienteEncontrado = false;
-    this.pacienteId         = null;
+    this.pacienteId = null;
     this.cdr.detectChanges();
 
     const params = new HttpParams().set('identification', cedula);
@@ -236,28 +297,27 @@ export class Agendador implements OnInit {
     this.http.get<any>(`${this.apiUrl}/patients/by-identification`,
       { headers: this.headers(), params }).subscribe({
         next: (paciente) => {
-          // FIX: asignar uno por uno + detectChanges al final
-          this.nuevaCita.firstName = paciente.firstName  || '';
-          this.nuevaCita.lastName  = paciente.lastName   || '';
-          this.nuevaCita.phone     = paciente.phone      || '';
-          this.nuevaCita.email     = paciente.email      || '';
-          this.nuevaCita.gender    = paciente.gender     || '';
-          this.nuevaCita.birthDate = paciente.birthDate  || '';
-          this.pacienteId          = paciente.id;
-          this.pacienteEncontrado  = true;
-          this.buscandoPaciente    = false;
+          this.nuevaCita.firstName = paciente.firstName || '';
+          this.nuevaCita.lastName = paciente.lastName || '';
+          this.nuevaCita.phone = paciente.phone || '';
+          this.nuevaCita.email = paciente.email || '';
+          this.nuevaCita.gender = paciente.gender || '';
+          this.nuevaCita.birthDate = paciente.birthDate || '';
+          this.pacienteId = paciente.id;
+          this.pacienteEncontrado = true;
+          this.buscandoPaciente = false;
           this.cdr.detectChanges();
         },
         error: () => {
           this.nuevaCita.firstName = '';
-          this.nuevaCita.lastName  = '';
-          this.nuevaCita.phone     = '';
-          this.nuevaCita.email     = '';
-          this.nuevaCita.gender    = '';
+          this.nuevaCita.lastName = '';
+          this.nuevaCita.phone = '';
+          this.nuevaCita.email = '';
+          this.nuevaCita.gender = '';
           this.nuevaCita.birthDate = '';
-          this.pacienteId          = null;
-          this.pacienteEncontrado  = false;
-          this.buscandoPaciente    = false;
+          this.pacienteId = null;
+          this.pacienteEncontrado = false;
+          this.buscandoPaciente = false;
           this.cdr.detectChanges();
         }
       });
@@ -266,12 +326,12 @@ export class Agendador implements OnInit {
   // ── Cargar franjas disponibles ──
   cargarFranjas() {
     if (!this.nuevaCita.doctorId || !this.nuevaCita.fecha) return;
-    this.franjas             = [];
+    this.franjas = [];
     this.nuevaCita.startTime = '';
 
     const params = new HttpParams()
       .set('doctorId', this.nuevaCita.doctorId)
-      .set('date',     this.nuevaCita.fecha);
+      .set('date', this.nuevaCita.fecha);
 
     this.http.get<any[]>(`${this.apiUrl}/appointments/slots`,
       { headers: this.headers(), params }).subscribe({
@@ -285,7 +345,7 @@ export class Agendador implements OnInit {
 
   crearCita() {
     this.cargandoCita = true;
-    this.errorCita    = '';
+    this.errorCita = '';
 
     if (this.pacienteId) {
       this.agendarCitaConPaciente(this.pacienteId);
@@ -294,21 +354,21 @@ export class Agendador implements OnInit {
 
     const datosPaciente = {
       identification: this.nuevaCita.identification,
-      firstName:      this.nuevaCita.firstName,
-      lastName:       this.nuevaCita.lastName,
-      phone:          this.nuevaCita.phone,
-      gender:         this.nuevaCita.gender,
-      birthDate:      this.nuevaCita.birthDate || null,
-      email:          this.nuevaCita.email     || null,
-      username:       this.nuevaCita.identification,
-      password:       this.nuevaCita.identification
+      firstName: this.nuevaCita.firstName,
+      lastName: this.nuevaCita.lastName,
+      phone: this.nuevaCita.phone,
+      gender: this.nuevaCita.gender,
+      birthDate: this.nuevaCita.birthDate || null,
+      email: this.nuevaCita.email || null,
+      username: this.nuevaCita.identification,
+      password: this.nuevaCita.identification
     };
 
     this.http.post<any>(`${this.apiUrl}/patients/register`,
       datosPaciente, { headers: this.headers() }).subscribe({
         next: (paciente) => this.agendarCitaConPaciente(paciente.id),
         error: (err) => {
-          this.errorCita    = err.error?.message || 'Error al registrar paciente';
+          this.errorCita = err.error?.message || 'Error al registrar paciente';
           this.cargandoCita = false;
           this.cdr.detectChanges();
         }
@@ -317,23 +377,23 @@ export class Agendador implements OnInit {
 
   private agendarCitaConPaciente(patientId: number) {
     const datosCita = {
-      doctorId:  this.nuevaCita.doctorId,
+      doctorId: this.nuevaCita.doctorId,
       patientId: patientId,
-      date:      this.nuevaCita.fecha,
+      date: this.nuevaCita.fecha,
       startTime: this.nuevaCita.startTime,
-      notes:     'Cita agendada por WhatsApp'
+      notes: 'Cita agendada por WhatsApp'
     };
 
     this.http.post(`${this.apiUrl}/appointments`,
       datosCita, { headers: this.headers() }).subscribe({
         next: () => {
           this.cargandoCita = false;
-          this.citaCreada   = true;
+          this.citaCreada = true;
           this.cdr.detectChanges();
           this.cargarFranjas();
         },
         error: (err) => {
-          this.errorCita    = err.error?.message || 'Error al crear cita';
+          this.errorCita = err.error?.message || 'Error al crear cita';
           this.cargandoCita = false;
           this.cdr.detectChanges();
         }
@@ -341,55 +401,56 @@ export class Agendador implements OnInit {
   }
 
   reiniciarFormulario() {
-    this.citaCreada            = false;
-    this.pacienteEncontrado    = false;
-    this.pacienteId            = null;
+    this.citaCreada = false;
+    this.pacienteEncontrado = false;
+    this.pacienteId = null;
     this.especialidadNuevaCita = '';
     this.medicosFiltradosNueva = [];
     this.nuevaCita = {
       identification: '',
-      firstName:  '',
-      lastName:   '',
-      phone:      '',
-      gender:     '',
-      birthDate:  '',
-      email:      '',
-      doctorId:   0,
-      fecha:      '',
-      startTime:  ''
+      firstName: '',
+      lastName: '',
+      phone: '',
+      gender: '',
+      birthDate: '',
+      email: '',
+      doctorId: 0,
+      fecha: '',
+      startTime: ''
     };
     this.franjas = [];
     this.cdr.detectChanges();
   }
+
   onReagEspecialidadChange() {
     this.reagMedicosFiltrados = this.medicos.filter(
       m => m.specialty === this.reagEspecialidad
     );
     this.reagDoctorId = 0;
-    this.reagCitas    = [];
+    this.reagCitas = [];
     this.reagCitaSeleccionada = null;
   }
 
   reagBuscarCitas() {
     if (!this.reagDoctorId || !this.reagBuscarFecha) return;
     this.reagBuscando = true;
-    this.reagError    = '';
-    this.reagCitas    = [];
+    this.reagError = '';
+    this.reagCitas = [];
     this.reagCitaSeleccionada = null;
 
     const params = new HttpParams()
       .set('doctorId', this.reagDoctorId)
-      .set('date',     this.reagBuscarFecha);
+      .set('date', this.reagBuscarFecha);
 
     this.http.get<any[]>(`${this.apiUrl}/appointments`,
       { headers: this.headers(), params }).subscribe({
         next: (data) => {
-          this.reagCitas    = (data || []).filter(c => c.status === 'SCHEDULED');
+          this.reagCitas = (data || []).filter(c => c.status === 'SCHEDULED');
           this.reagBuscando = false;
           this.cdr.detectChanges();
         },
         error: () => {
-          this.reagError    = 'Error al buscar citas.';
+          this.reagError = 'Error al buscar citas.';
           this.reagBuscando = false;
           this.cdr.detectChanges();
         }
@@ -398,28 +459,28 @@ export class Agendador implements OnInit {
 
   seleccionarCitaReagendar(cita: any) {
     this.reagCitaSeleccionada = cita;
-    this.reagNuevaFecha       = '';
-    this.reagFranjas          = [];
-    this.reagNuevaHora        = '';
-    this.reagExito            = '';
-    this.reagErrorGuardar     = '';
+    this.reagNuevaFecha = '';
+    this.reagFranjas = [];
+    this.reagNuevaHora = '';
+    this.reagExito = '';
+    this.reagErrorGuardar = '';
     this.cdr.detectChanges();
   }
 
   cargarFranjasReagendar() {
     if (!this.reagCitaSeleccionada || !this.reagNuevaFecha) return;
     this.reagCargandoFranjas = true;
-    this.reagFranjas         = [];
-    this.reagNuevaHora       = '';
+    this.reagFranjas = [];
+    this.reagNuevaHora = '';
 
     const params = new HttpParams()
       .set('doctorId', this.reagCitaSeleccionada.doctorId)
-      .set('date',     this.reagNuevaFecha);
+      .set('date', this.reagNuevaFecha);
 
     this.http.get<any[]>(`${this.apiUrl}/appointments/slots`,
       { headers: this.headers(), params }).subscribe({
         next: (data) => {
-          this.reagFranjas         = data.filter(f => f.available);
+          this.reagFranjas = data.filter(f => f.available);
           this.reagCargandoFranjas = false;
           this.cdr.detectChanges();
         },
@@ -432,67 +493,35 @@ export class Agendador implements OnInit {
 
   confirmarReagendar() {
     if (!this.reagCitaSeleccionada || !this.reagNuevaFecha || !this.reagNuevaHora) return;
-    this.reagGuardando    = true;
-    this.reagExito        = '';
+    this.reagGuardando = true;
+    this.reagExito = '';
     this.reagErrorGuardar = '';
 
     const payload = {
-      doctorId  : this.reagCitaSeleccionada.doctorId,
-      patientId : this.reagCitaSeleccionada.patientId,
-      date      : this.reagNuevaFecha,
-      startTime : this.reagNuevaHora,
-      notes     : this.reagCitaSeleccionada.notes || ''
+      doctorId: this.reagCitaSeleccionada.doctorId,
+      patientId: this.reagCitaSeleccionada.patientId,
+      date: this.reagNuevaFecha,
+      startTime: this.reagNuevaHora,
+      notes: this.reagCitaSeleccionada.notes || ''
     };
 
     this.http.put(`${this.apiUrl}/appointments/${this.reagCitaSeleccionada.id}`,
       payload, { headers: this.headers() }).subscribe({
         next: () => {
-          this.reagGuardando        = false;
-          this.reagExito            = `✅ Cita de ${this.reagCitaSeleccionada.patientName} reagendada para el ${this.reagNuevaFecha} a las ${this.reagNuevaHora}`;
+          this.reagGuardando = false;
+          this.reagExito = `✅ Cita de ${this.reagCitaSeleccionada.patientName} reagendada para el ${this.reagNuevaFecha} a las ${this.reagNuevaHora}`;
           this.reagCitaSeleccionada = null;
-          this.reagFranjas          = [];
-          this.reagNuevaHora        = '';
+          this.reagFranjas = [];
+          this.reagNuevaHora = '';
           this.reagBuscarCitas();
           this.cdr.detectChanges();
           setTimeout(() => { this.reagExito = ''; this.cdr.detectChanges(); }, 5000);
         },
         error: (err) => {
-          this.reagGuardando    = false;
+          this.reagGuardando = false;
           this.reagErrorGuardar = err.error?.message || 'Error al reagendar la cita';
           this.cdr.detectChanges();
         }
       });
-  }
-
-  // ── Cancelación ──────────────────────────────────────────────────────────
-  abrirCancelacion(cita: any) {
-    this.cancelCita   = cita;
-    this.cancelMotivo = '';
-    this.cancelError  = '';
-    this.cdr.detectChanges();
-  }
-
-  cerrarCancelacion() { this.cancelCita = null; this.cancelMotivo = ''; }
-
-  confirmarCancelacion() {
-    if (!this.cancelMotivo.trim()) { this.cancelError = 'Debe indicar el motivo.'; return; }
-    this.cancelando  = true;
-    this.cancelError = '';
-
-    this.http.patch(`${this.apiUrl}/appointments/${this.cancelCita.id}/cancel`,
-      { reason: this.cancelMotivo }, { headers: this.headers() }).subscribe({
-      next: () => {
-        this.cancelando  = false;
-        this.cancelCita  = null;
-        this.cancelMotivo = '';
-        this.buscarCitas();   // refrescar lista
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.cancelando  = false;
-        this.cancelError = err.error?.message || 'Error al cancelar la cita.';
-        this.cdr.detectChanges();
-      }
-    });
   }
 }

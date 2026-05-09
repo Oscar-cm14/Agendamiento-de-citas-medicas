@@ -1,6 +1,7 @@
 // ============================================================
 // medico.ts  –  Panel del Médico / Terapista
 // ============================================================
+
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -39,8 +40,11 @@ export class Medico implements OnInit {
   exportando         = false;
   mensajeExport      = '';
 
+  // ── Cancelar cita ─────────────────────────────────────────
+  cancelandoCitaId: number | null = null;
+  mensajeCancelacion = '';
+
   // ── Pestaña: Agendar nueva cita ───────────────────────────
-  // Lista de médicos para el select (el médico actual + otros si aplica)
   todosMedicos: any[]    = [];
   especialidades: string[] = [];
 
@@ -67,16 +71,11 @@ export class Medico implements OnInit {
   pacienteId: number | null = null;
 
   // ── Pestaña: Reagendar cita ────────────────────────────────
-  // Paso 1: buscar cita a reagendar
   reagBuscarFecha        = '';
   reagCitas: any[]       = [];
   reagBuscando           = false;
   reagError              = '';
-
-  // Paso 2: cita seleccionada para mover
   reagCitaSeleccionada: any = null;
-
-  // Paso 3: nueva fecha y franja
   reagNuevaFecha         = '';
   reagFranjas: any[]     = [];
   reagNuevaHora          = '';
@@ -84,12 +83,6 @@ export class Medico implements OnInit {
   reagGuardando          = false;
   reagExito              = '';
   reagErrorGuardar       = '';
-
-  // ── Cancelación ──
-  cancelCita:   any = null;
-  cancelMotivo      = '';
-  cancelError       = '';
-  cancelando        = false;
 
   private apiUrl = 'http://localhost:8080/api/v1';
 
@@ -125,13 +118,16 @@ export class Medico implements OnInit {
           this.medicoNombre       = data.fullName
             || `${data.firstName} ${data.lastName}`;
           this.medicoEspecialidad = data.specialty || '';
+          // Guardar nombre en localStorage para persistencia
+          localStorage.setItem('nombreUsuario', this.medicoNombre);
           // Preseleccionar el propio médico en el form de agendar
           this.nuevaCita.doctorId = data.id;
           this.cdr.detectChanges();
           this.cargarCitasHoy();
         },
         error: () => {
-          // Fallback: usar userId directamente
+          // Fallback: intentar leer nombre guardado en localStorage
+          this.medicoNombre       = localStorage.getItem('nombreUsuario') || '';
           this.medicoId           = Number(userId);
           this.nuevaCita.doctorId = Number(userId);
           this.cargarCitasHoy();
@@ -182,6 +178,37 @@ export class Medico implements OnInit {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  // ── Cancelar cita (usado en citas de hoy y en búsqueda por fecha) ──
+  cancelarCita(citaId: number) {
+    if (!confirm('¿Está seguro de que desea cancelar esta cita?')) return;
+
+    this.cancelandoCitaId  = citaId;
+    this.mensajeCancelacion = '';
+    this.cdr.detectChanges();
+
+    this.http.patch(
+      `${this.apiUrl}/appointments/${citaId}/cancel`,
+      {},
+      { headers: this.headers() }
+    ).subscribe({
+      next: () => {
+        this.cancelandoCitaId   = null;
+        this.mensajeCancelacion = '✅ Cita cancelada exitosamente.';
+        this.cdr.detectChanges();
+        // Refrescar listas según pestaña activa
+        this.cargarCitasHoy();
+        if (this.fechaBuscar) this.buscarCitas();
+        setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 4000);
+      },
+      error: (err) => {
+        this.cancelandoCitaId   = null;
+        this.mensajeCancelacion = '❌ ' + (err.error?.message || 'Error al cancelar la cita.');
+        this.cdr.detectChanges();
+        setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 5000);
+      }
+    });
   }
 
   // ══════════════════════════════════════════════════════════
@@ -369,8 +396,8 @@ export class Medico implements OnInit {
           this.cargandoCita = false;
           this.citaCreada   = true;
           this.cdr.detectChanges();
-          this.cargarCitasHoy();   // refrescar citas de hoy
-          this.cargarFranjasNueva(); // quitar la franja ocupada
+          this.cargarCitasHoy();
+          this.cargarFranjasNueva();
         },
         error: (err) => {
           this.errorCita    = err.error?.message || 'Error al crear cita';
@@ -406,7 +433,6 @@ export class Medico implements OnInit {
   //  PESTAÑA: REAGENDAR CITA
   // ══════════════════════════════════════════════════════════
 
-  // Paso 1: buscar citas del médico en una fecha para elegir cuál mover
   reagBuscarCitas() {
     if (!this.medicoId || !this.reagBuscarFecha) return;
     this.reagBuscando = true;
@@ -424,7 +450,6 @@ export class Medico implements OnInit {
     this.http.get<any[]>(`${this.apiUrl}/appointments`,
       { headers: this.headers(), params }).subscribe({
         next: (data) => {
-          // Solo mostrar las SCHEDULED (no tiene sentido reagendar canceladas)
           this.reagCitas    = (data || []).filter(c => c.status === 'SCHEDULED');
           this.reagBuscando = false;
           this.cdr.detectChanges();
@@ -437,7 +462,6 @@ export class Medico implements OnInit {
       });
   }
 
-  // Paso 2: el médico elige la cita que quiere mover
   seleccionarCitaReagendar(cita: any) {
     this.reagCitaSeleccionada = cita;
     this.reagNuevaFecha       = '';
@@ -448,7 +472,6 @@ export class Medico implements OnInit {
     this.cdr.detectChanges();
   }
 
-  // Paso 3: cargar franjas disponibles en la nueva fecha
   cargarFranjasReagendar() {
     if (!this.reagCitaSeleccionada || !this.reagNuevaFecha) return;
     this.reagCargandoFranjas = true;
@@ -473,14 +496,12 @@ export class Medico implements OnInit {
       });
   }
 
-  // Paso 4: confirmar el reagendamiento
   confirmarReagendar() {
     if (!this.reagCitaSeleccionada || !this.reagNuevaFecha || !this.reagNuevaHora) return;
     this.reagGuardando    = true;
     this.reagExito        = '';
     this.reagErrorGuardar = '';
 
-    // El backend actualiza la cita existente con nueva fecha y hora
     const payload = {
       doctorId  : this.reagCitaSeleccionada.doctorId,
       patientId : this.reagCitaSeleccionada.patientId,
@@ -494,11 +515,9 @@ export class Medico implements OnInit {
         next: () => {
           this.reagGuardando    = false;
           this.reagExito        = `✅ Cita de ${this.reagCitaSeleccionada.patientName} reagendada para el ${this.reagNuevaFecha} a las ${this.reagNuevaHora}`;
-          // Limpiar selección para una nueva operación
           this.reagCitaSeleccionada = null;
           this.reagFranjas          = [];
           this.reagNuevaHora        = '';
-          // Refrescar la lista de citas del día buscado
           this.reagBuscarCitas();
           this.cargarCitasHoy();
           this.cdr.detectChanges();
@@ -521,39 +540,6 @@ export class Medico implements OnInit {
   colorEstado(status: string): string {
     return { SCHEDULED: 'bg-success', COMPLETED: 'bg-secondary', CANCELLED: 'bg-danger' }
       [status] || 'bg-secondary';
-  }
-
-  // ── Cancelación ─────────────────────────────────────────
-  abrirCancelacion(cita: any) {
-    this.cancelCita   = cita;
-    this.cancelMotivo = '';
-    this.cancelError  = '';
-    this.cdr.detectChanges();
-  }
-
-  cerrarCancelacion() { this.cancelCita = null; this.cancelMotivo = ''; }
-
-  confirmarCancelacion() {
-    if (!this.cancelMotivo.trim()) { this.cancelError = 'Debe indicar el motivo.'; return; }
-    this.cancelando  = true;
-    this.cancelError = '';
-
-    this.http.patch(`${this.apiUrl}/appointments/${this.cancelCita.id}/cancel`,
-      { reason: this.cancelMotivo }, { headers: this.headers() }).subscribe({
-      next: () => {
-        this.cancelando   = false;
-        this.cancelCita   = null;
-        this.cancelMotivo = '';
-        this.cargarCitasHoy();
-        this.buscarCitas();
-        this.cdr.detectChanges();
-      },
-      error: (err: any) => {
-        this.cancelando  = false;
-        this.cancelError = err.error?.message || 'Error al cancelar la cita.';
-        this.cdr.detectChanges();
-      }
-    });
   }
 
   cerrarSesion() {

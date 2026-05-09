@@ -5,8 +5,20 @@
 <div class="container my-4">
   <!-- ── HEADER ── -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>📋 Panel Agendador</h2>
+    <div>
+      <h2 class="mb-0">📋 Panel Agendador</h2>
+      <small class="text-muted" *ngIf="agendadorNombre">
+        Bienvenido, <strong>{{ agendadorNombre }}</strong>
+      </small>
+    </div>
     <button class="btn btn-outline-danger" (click)="cerrarSesion()">Cerrar Sesión</button>
+  </div>
+
+  <!-- ── MENSAJE GLOBAL CANCELACIÓN ── -->
+  <div *ngIf="mensajeCancelacion" class="alert py-2 mb-3"
+    [class.alert-success]="mensajeCancelacion.startsWith('✅')"
+    [class.alert-danger]="mensajeCancelacion.startsWith('❌')">
+    {{ mensajeCancelacion }}
   </div>
 
   <!-- ── PESTAÑAS ── -->
@@ -107,11 +119,7 @@
             <!-- Contador total -->
             <span class="badge bg-primary fs-6">Total: {{ citas.length }} citas</span>
 
-            <!-- ============================================================
-                 RF5: BOTÓN EXPORTAR CSV
-                 Solo se muestra cuando ya hay resultados cargados.
-                 Spinner mientras exporta; mensaje de estado debajo.
-                 ============================================================ -->
+            <!-- Botón exportar CSV -->
             <button
               class="btn btn-outline-success btn-sm"
               (click)="exportarCsv()"
@@ -167,8 +175,24 @@
                     [class.bg-danger]="cita.status === 'CANCELLED'"
                     [class.bg-secondary]="cita.status === 'COMPLETED'"
                   >
-                    {{ cita.status }}
+                    {{ cita.status === 'SCHEDULED' ? 'Programada' :
+                       cita.status === 'CANCELLED' ? 'Cancelada' :
+                       cita.status === 'COMPLETED' ? 'Completada' : cita.status }}
                   </span>
+                </td>
+                <td>
+                  <button
+                    *ngIf="cita.status === 'SCHEDULED'"
+                    class="btn btn-sm btn-outline-danger"
+                    (click)="cancelarCita(cita.id)"
+                    [disabled]="cancelandoCitaId === cita.id"
+                    title="Cancelar cita">
+                    <span *ngIf="cancelandoCitaId !== cita.id">❌ Cancelar</span>
+                    <span *ngIf="cancelandoCitaId === cita.id">
+                      <span class="spinner-border spinner-border-sm me-1"></span>...
+                    </span>
+                  </button>
+                  <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
                 </td>
               </tr>
             </tbody>
@@ -221,67 +245,39 @@
               />
               <span class="input-group-text">
                 <span *ngIf="buscandoPaciente">⏳</span>
-                <span *ngIf="!buscandoPaciente && pacienteEncontrado" title="Paciente encontrado"
-                  >✅</span
-                >
-                <span
-                  *ngIf="!buscandoPaciente && !pacienteEncontrado && nuevaCita.identification"
-                  title="Paciente nuevo"
-                  >🆕</span
-                >
+                <span *ngIf="!buscandoPaciente && pacienteEncontrado" title="Paciente encontrado">✅</span>
+                <span *ngIf="!buscandoPaciente && !pacienteEncontrado && nuevaCita.identification" title="Paciente nuevo">🆕</span>
               </span>
             </div>
             <small *ngIf="pacienteEncontrado" class="text-success">
               Paciente encontrado. Datos autocompletados.
             </small>
-            <small
-              *ngIf="!pacienteEncontrado && nuevaCita.identification && !buscandoPaciente"
-              class="text-muted"
-            >
+            <small *ngIf="!pacienteEncontrado && nuevaCita.identification && !buscandoPaciente" class="text-muted">
               Paciente nuevo. Complete los datos.
             </small>
           </div>
 
           <div class="col-md-6">
             <label class="form-label">Nombres *</label>
-            <input
-              type="text"
-              class="form-control"
-              [(ngModel)]="nuevaCita.firstName"
-              [readonly]="pacienteEncontrado"
-              placeholder="Nombres"
-            />
+            <input type="text" class="form-control" [(ngModel)]="nuevaCita.firstName"
+              [readonly]="pacienteEncontrado" placeholder="Nombres" />
           </div>
 
           <div class="col-md-6">
             <label class="form-label">Apellidos *</label>
-            <input
-              type="text"
-              class="form-control"
-              [(ngModel)]="nuevaCita.lastName"
-              [readonly]="pacienteEncontrado"
-              placeholder="Apellidos"
-            />
+            <input type="text" class="form-control" [(ngModel)]="nuevaCita.lastName"
+              [readonly]="pacienteEncontrado" placeholder="Apellidos" />
           </div>
 
           <div class="col-md-6">
             <label class="form-label">Celular *</label>
-            <input
-              type="text"
-              class="form-control"
-              [(ngModel)]="nuevaCita.phone"
-              [readonly]="pacienteEncontrado"
-              placeholder="Número de celular"
-            />
+            <input type="text" class="form-control" [(ngModel)]="nuevaCita.phone"
+              [readonly]="pacienteEncontrado" placeholder="Número de celular" />
           </div>
 
           <div class="col-md-6">
             <label class="form-label">Género *</label>
-            <select
-              class="form-select"
-              [(ngModel)]="nuevaCita.gender"
-              [disabled]="pacienteEncontrado"
-            >
+            <select class="form-select" [(ngModel)]="nuevaCita.gender" [disabled]="pacienteEncontrado">
               <option value="">Seleccione...</option>
               <option value="Hombre">Hombre</option>
               <option value="Mujer">Mujer</option>
@@ -290,28 +286,15 @@
           </div>
 
           <div class="col-md-6">
-            <label class="form-label">
-              Fecha de nacimiento <span class="text-muted">(opcional)</span>
-            </label>
-            <input
-              type="date"
-              class="form-control"
-              [(ngModel)]="nuevaCita.birthDate"
-              [readonly]="pacienteEncontrado"
-            />
+            <label class="form-label">Fecha de nacimiento <span class="text-muted">(opcional)</span></label>
+            <input type="date" class="form-control" [(ngModel)]="nuevaCita.birthDate"
+              [readonly]="pacienteEncontrado" />
           </div>
 
           <div class="col-md-6">
-            <label class="form-label">
-              Correo electrónico <span class="text-muted">(opcional)</span>
-            </label>
-            <input
-              type="email"
-              class="form-control"
-              [(ngModel)]="nuevaCita.email"
-              [readonly]="pacienteEncontrado"
-              placeholder="correo@ejemplo.com"
-            />
+            <label class="form-label">Correo electrónico <span class="text-muted">(opcional)</span></label>
+            <input type="email" class="form-control" [(ngModel)]="nuevaCita.email"
+              [readonly]="pacienteEncontrado" placeholder="correo@ejemplo.com" />
           </div>
         </div>
 
@@ -340,8 +323,7 @@
           <div class="col-md-6" *ngIf="especialidadNuevaCita">
             <label class="form-label fw-semibold">Médico *</label>
             <div *ngIf="medicosFiltradosNueva.length === 1" class="alert alert-info py-2 mb-2">
-              Médico asignado:
-              <strong>{{ medicosFiltradosNueva[0].fullName }}</strong>
+              Médico asignado: <strong>{{ medicosFiltradosNueva[0].fullName }}</strong>
             </div>
             <select
               class="form-select"
@@ -358,12 +340,8 @@
 
           <div class="col-md-6" *ngIf="especialidadNuevaCita && nuevaCita.doctorId">
             <label class="form-label fw-semibold">Fecha *</label>
-            <input
-              type="date"
-              class="form-control"
-              [(ngModel)]="nuevaCita.fecha"
-              (change)="cargarFranjas()"
-            />
+            <input type="date" class="form-control" [(ngModel)]="nuevaCita.fecha"
+              (change)="cargarFranjas()" />
           </div>
 
           <div class="col-12" *ngIf="franjas.length > 0">
@@ -404,6 +382,7 @@
       </div>
     </div>
   </div>
+
   <!-- ============================================================ -->
   <!-- PESTAÑA 3: REAGENDAR CITA                                     -->
   <!-- ============================================================ -->
@@ -511,63 +490,22 @@
 
         <div *ngIf="reagErrorGuardar" class="alert alert-danger">{{ reagErrorGuardar }}</div>
 
-        <button class="btn btn-warning w-100"
-          (click)="confirmarReagendar()"
-          [disabled]="reagGuardando || !reagNuevaHora">
-          <span *ngIf="!reagGuardando">🔄 Confirmar Reagendamiento</span>
-          <span *ngIf="reagGuardando">
-            <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
-          </span>
-        </button>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════ -->
-<!-- MODAL DE CANCELACIÓN (Agendador)                           -->
-<!-- ══════════════════════════════════════════════════════════ -->
-<div *ngIf="cancelCita"
-     class="modal d-block"
-     style="background:rgba(0,0,0,0.5); position:fixed; inset:0; z-index:1050;">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-
-      <div class="modal-header">
-        <h5 class="modal-title">❌ Cancelar Cita</h5>
-        <button class="btn-close" (click)="cerrarCancelacion()"></button>
-      </div>
-
-      <div class="modal-body">
-        <p class="mb-1">
-          <strong>Paciente:</strong> {{ cancelCita.patientName }}<br>
-          <strong>Médico:</strong>   {{ cancelCita.doctorName }}<br>
-          <strong>Fecha:</strong>    {{ cancelCita.date }} a las {{ cancelCita.startTime }}
-        </p>
-        <hr>
-        <label class="form-label fw-semibold">Motivo de cancelación *</label>
-        <textarea
-          class="form-control"
-          rows="3"
-          [(ngModel)]="cancelMotivo"
-          placeholder="Ej: El paciente solicitó cancelación por viaje...">
-        </textarea>
-        <div *ngIf="cancelError" class="alert alert-danger mt-2 py-2">
-          {{ cancelError }}
+        <!-- Botones confirmar / cancelar selección -->
+        <div class="d-flex gap-2">
+          <button class="btn btn-warning flex-grow-1"
+            (click)="confirmarReagendar()"
+            [disabled]="reagGuardando || !reagNuevaHora">
+            <span *ngIf="!reagGuardando">🔄 Confirmar Reagendamiento</span>
+            <span *ngIf="reagGuardando">
+              <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
+            </span>
+          </button>
+          <button class="btn btn-outline-secondary"
+            (click)="reagCitaSeleccionada = null"
+            [disabled]="reagGuardando">
+            Cancelar
+          </button>
         </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="cerrarCancelacion()"
-                [disabled]="cancelando">Volver</button>
-        <button class="btn btn-danger" (click)="confirmarCancelacion()"
-                [disabled]="cancelando || !cancelMotivo.trim()">
-          <span *ngIf="!cancelando">Confirmar cancelación</span>
-          <span *ngIf="cancelando">
-            <span class="spinner-border spinner-border-sm me-1"></span>Cancelando...
-          </span>
-        </button>
       </div>
 
     </div>
