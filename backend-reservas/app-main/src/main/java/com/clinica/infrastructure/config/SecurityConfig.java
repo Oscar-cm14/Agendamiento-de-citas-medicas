@@ -84,9 +84,14 @@ public class SecurityConfig {
                 // ── Citas ─────────────────────────────────────────────────
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                // Reagendar cita: ADMIN y SCHEDULER
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER")
+                // Reagendar cita: ADMIN y SCHEDULER
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER")
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
-
                 // ── Franjas disponibles ───────────────────────────────────
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")

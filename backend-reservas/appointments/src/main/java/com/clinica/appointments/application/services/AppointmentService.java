@@ -23,4 +23,7 @@ public interface AppointmentService {
     
    // Panel paciente: listar sus propias citas
     List<AppointmentResponse> listAppointmentsByPatient(Long patientId);
+    
+    // RF: Reagendar una cita existente
+    AppointmentResponse rescheduleAppointment(Long appointmentId, AppointmentRequest request);
 }

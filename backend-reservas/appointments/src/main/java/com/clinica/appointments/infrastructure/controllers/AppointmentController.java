@@ -9,7 +9,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -69,7 +71,14 @@ public class AppointmentController {
         AppointmentResponse response = appointmentService.createAppointment(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-
+// RF: Reagendar cita existente
+    @PutMapping("/{id}")
+    public ResponseEntity<AppointmentResponse> rescheduleAppointment(
+            @PathVariable Long id,
+            @RequestBody AppointmentRequest request) {
+ 
+        return ResponseEntity.ok(appointmentService.rescheduleAppointment(id, request));
+    }
     /**
      * RF3: Retorna las franjas horarias disponibles de un médico en una fecha.
      * GET /api/v1/appointments/slots?doctorId=1&date=2026-03-21
