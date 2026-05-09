@@ -37,8 +37,8 @@ export class AgendarCita implements OnInit {
   pestanaActiva = 'agendar';
 
   // ── Cancelación ──
-  citaCancelando: any = null;      // cita sobre la que se abrió el modal
-  motivoCancelacion = '';          // texto que escribe el paciente
+  citaCancelando: any = null;
+  motivoCancelacion = '';
   errorCancelacion = '';
   cancelando = false;
 
@@ -68,8 +68,10 @@ export class AgendarCita implements OnInit {
   cargarMedicos() {
     this.appointmentService.listarMedicos().subscribe({
       next: (data) => {
-        this.medicos = data;
-        const raw = data.map((m: any) => m.specialty).filter((s: any) => s && s.trim() !== '');
+        this.medicos = data || [];
+        const raw = this.medicos
+          .map((m: any) => m.specialty)
+          .filter((s: any) => s && s.trim() !== '');
         this.especialidades = [...new Set<string>(raw)].sort();
       },
       error: () => this.error = 'Error al cargar médicos'
@@ -83,30 +85,14 @@ export class AgendarCita implements OnInit {
     this.franjaSeleccionada = null;
     this.fecha             = '';
     this.error             = '';
+
     if (this.medicosFiltrados.length === 1) {
       this.doctorId = this.medicosFiltrados[0].id;
-      if (this.fecha) this.buscarFranjas();
-  // ── Se ejecuta cuando el paciente cambia la especialidad en el select ──
-  // ── Se ejecuta cuando el paciente cambia la especialidad ──
-onEspecialidadChange() {
-  this.medicosFiltrados = this.medicos.filter(
-    m => m.specialty === this.especialidadSeleccionada
-  );
-  this.doctorId          = 0;
-  this.franjas           = [];
-  this.franjaSeleccionada = null;
-  this.fecha             = '';
-
-  // FIX: si hay un solo médico, auto-seleccionarlo
-  // Y llamar buscarFranjas() si además ya hay fecha
-  if (this.medicosFiltrados.length === 1) {
-    this.doctorId = this.medicosFiltrados[0].id;
-    // Si el usuario ya había elegido fecha antes de cambiar especialidad,
-    // cargar las franjas directamente
-    if (this.fecha) {
-      this.buscarFranjas();
+      if (this.fecha) {
+        this.buscarFranjas();
+      }
+      this.cdr.detectChanges();
     }
-    this.cdr.detectChanges();
   }
 
   cargarMisCitas() {
@@ -114,119 +100,179 @@ onEspecialidadChange() {
       this.errorCitas = 'No se pudo identificar al paciente.';
       return;
     }
-    this.cargandoCitas = true;
-    this.errorCitas    = '';
-    this.misCitas      = [];
 
-    const params = new HttpParams().set('patientId', this.patientId);
-    this.http.get<any[]>(`${this.apiUrl}/appointments`, { headers: this.headers(), params })
+    this.cargandoCitas = true;
+    this.errorCitas = '';
+    this.misCitas = [];
+
+    const params = new HttpParams().set('patientId', this.patientId.toString());
+    this.http.get<any[]>(`${this.apiUrl}/appointments`, { headers: this.headers(), params }).subscribe({
+      next: (data) => {
+        this.misCitas = data || [];
+        this.cargandoCitas = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.cargandoCitas = false;
+        this.errorCitas = (err.status === 401 || err.status === 403)
+          ? 'Sesión expirada.'
+          : 'Error al cargar las citas.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  buscarFranjas() {
+    if (!this.doctorId || !this.fecha) {
+      this.franjas = [];
+      this.franjaSeleccionada = null;
+      return;
+    }
+
+    this.franjas = [];
+    this.franjaSeleccionada = null;
+    this.error = '';
+
+    this.appointmentService.obtenerFranjas(this.doctorId, this.fecha).subscribe({
+      next: (data) => {
+        this.franjas = (data || []).filter((f: any) => f.available);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.error = err.status === 404
+          ? 'El médico aún no tiene horario configurado.'
+          : 'Error al cargar las franjas horarias.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  seleccionarFranja(franja: any) {
+    if (franja && franja.available) {
+      this.franjaSeleccionada = franja;
+    }
+  }
+
+  cerrarSesion() {
+    this.authService.cerrarSesion();
+    this.router.navigate(['/login']);
+  }
+
+  confirmarCita() {
+    if (!this.patientId) {
+      this.error = 'No se ha detectado el ID del paciente.';
+      return;
+    }
+
+    if (!this.doctorId || !this.fecha) {
+      this.error = 'Seleccione médico y fecha.';
+      return;
+    }
+
+    if (!this.franjaSeleccionada) {
+      this.error = 'Seleccione una franja horaria.';
+      return;
+    }
+
+    this.cargando = true;
+    this.error = '';
+
+    const datos = {
+      doctorId: this.doctorId,
+      patientId: this.patientId,
+      date: this.fecha,
+      startTime: this.franjaSeleccionada.startTime,
+      notes: ''
+    };
+
+    this.appointmentService.crearCita(datos).subscribe({
+      next: () => {
+        this.cargando = false;
+        this.citaCreada = true;
+        this.cdr.detectChanges();
+        this.cargarMisCitas();
+        setTimeout(() => {
+          this.limpiarFormulario();
+          this.citaCreada = false;
+        }, 2000);
+      },
+      error: (err) => {
+        this.cargando = false;
+        if (err.status === 409) {
+          this.error = 'La franja ya fue tomada.';
+        } else if (err.status === 400) {
+          this.error = 'Datos inválidos.';
+        } else if (err.status === 401 || err.status === 403) {
+          this.error = 'Sesión expirada.';
+        } else {
+          this.error = 'Error al agendar cita.';
+        }
+      }
+    });
+  }
+
+  abrirCancelacion(cita: any) {
+    this.citaCancelando = cita;
+    this.motivoCancelacion = '';
+    this.errorCancelacion = '';
+    this.cdr.detectChanges();
+  }
+
+  cerrarCancelacion() {
+    this.citaCancelando = null;
+    this.motivoCancelacion = '';
+  }
+
+  confirmarCancelacion() {
+    if (!this.citaCancelando) {
+      this.errorCancelacion = 'No hay cita seleccionada para cancelar.';
+      return;
+    }
+
+    if (!this.motivoCancelacion.trim()) {
+      this.errorCancelacion = 'Debe indicar el motivo de cancelación.';
+      return;
+    }
+
+    this.cancelando = true;
+    this.errorCancelacion = '';
+
+    this.http.patch(`${this.apiUrl}/appointments/${this.citaCancelando.id}/cancel`,
+      { reason: this.motivoCancelacion },
+      { headers: this.headers() })
       .subscribe({
-        next: (data) => { this.misCitas = data || []; this.cargandoCitas = false; this.cdr.detectChanges(); },
+        next: () => {
+          this.cancelando = false;
+          this.citaCancelando = null;
+          this.motivoCancelacion = '';
+          this.cargarMisCitas();
+          this.cdr.detectChanges();
+        },
         error: (err) => {
-          this.cargandoCitas = false;
-          this.errorCitas = (err.status === 401 || err.status === 403)
-            ? 'Sesión expirada.' : 'Error al cargar las citas.';
+          this.cancelando = false;
+          this.errorCancelacion = err.error?.message || 'Error al cancelar la cita.';
           this.cdr.detectChanges();
         }
       });
   }
 
-  buscarFranjas() {
-    if (!this.doctorId || !this.fecha) return;
-    this.franjas = []; this.franjaSeleccionada = null; this.error = '';
-    this.appointmentService.obtenerFranjas(this.doctorId, this.fecha).subscribe({
-      next: (data) => { this.franjas = (data || []).filter((f: any) => f.available); this.cdr.detectChanges(); },
-      error: (err) => {
-        this.error = err.status === 404 ? 'El médico aún no tiene horario configurado.'
-                                        : 'Error al cargar las franjas horarias.';
-        this.cdr.detectChanges();
-      }
-    });
-  }
-  if (!this.doctorId || !this.fecha) return;
-  this.franjas           = [];
-  this.franjaSeleccionada = null;
-
-  this.appointmentService.obtenerFranjas(this.doctorId, this.fecha).subscribe({
-    next: (data) => {
-      this.franjas = data.filter((f: any) => f.available);
-      this.cdr.detectChanges(); // FIX: forzar actualización de la vista
-    },
-    error: () => this.error = 'Error al cargar franjas'
-  });
-}
-
-  seleccionarFranja(franja: any) { if (franja.available) this.franjaSeleccionada = franja; }
-
-  cerrarSesion() { this.authService.cerrarSesion(); this.router.navigate(['/login']); }
-
-  confirmarCita() {
-    if (!this.patientId) { this.error = 'No se ha detectado el ID del paciente.'; return; }
-    if (!this.doctorId || !this.fecha) { this.error = 'Seleccione médico y fecha.'; return; }
-    if (!this.franjaSeleccionada) { this.error = 'Seleccione una franja horaria.'; return; }
-
-    this.cargando = true; this.error = '';
-    const datos = { doctorId: this.doctorId, patientId: this.patientId,
-                    date: this.fecha, startTime: this.franjaSeleccionada.startTime, notes: '' };
-
-    this.appointmentService.crearCita(datos).subscribe({
-      next: () => {
-        this.cargando = false; this.citaCreada = true; this.cdr.detectChanges();
-        this.cargarMisCitas();
-        setTimeout(() => { this.limpiarFormulario(); this.citaCreada = false; }, 2000);
-      },
-      error: (err) => {
-        this.cargando = false;
-        if (err.status === 409)                    this.error = 'La franja ya fue tomada.';
-        else if (err.status === 400)               this.error = 'Datos inválidos.';
-        else if (err.status === 401 || err.status === 403) this.error = 'Sesión expirada.';
-        else                                       this.error = 'Error al agendar cita.';
-      }
-    });
-  }
-
-  // ── Abrir modal de cancelación ────────────────────────────────────────────
-  abrirCancelacion(cita: any) {
-    this.citaCancelando    = cita;
-    this.motivoCancelacion = '';
-    this.errorCancelacion  = '';
-    this.cdr.detectChanges();
-  }
-
-  // ── Cerrar modal sin cancelar ─────────────────────────────────────────────
-  cerrarCancelacion() { this.citaCancelando = null; this.motivoCancelacion = ''; }
-
-  // ── Confirmar cancelación con motivo ─────────────────────────────────────
-  confirmarCancelacion() {
-    if (!this.motivoCancelacion.trim()) {
-      this.errorCancelacion = 'Debe indicar el motivo de cancelación.'; return;
-    }
-    this.cancelando = true; this.errorCancelacion = '';
-
-    this.http.patch(`${this.apiUrl}/appointments/${this.citaCancelando.id}/cancel`,
-      { reason: this.motivoCancelacion }, { headers: this.headers() }).subscribe({
-      next: () => {
-        this.cancelando        = false;
-        this.citaCancelando    = null;
-        this.motivoCancelacion = '';
-        this.cargarMisCitas();   // refrescar lista
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.cancelando       = false;
-        this.errorCancelacion = err.error?.message || 'Error al cancelar la cita.';
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
   etiquetaEstado(status: string): string {
-    const map: any = { SCHEDULED: 'Programada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' };
+    const map: any = {
+      SCHEDULED: 'Programada',
+      COMPLETED: 'Completada',
+      CANCELLED: 'Cancelada'
+    };
     return map[status] || status;
   }
 
   limpiarFormulario() {
-    this.doctorId = 0; this.fecha = ''; this.franjas = []; this.franjaSeleccionada = null;
-    this.error = ''; this.citaCreada = false; this.especialidadSeleccionada = ''; this.medicosFiltrados = [];
+    this.doctorId = 0;
+    this.fecha = '';
+    this.franjas = [];
+    this.franjaSeleccionada = null;
+    this.error = '';
+    this.citaCreada = false;
+    this.especialidadSeleccionada = '';
+    this.medicosFiltrados = [];
   }
 }
