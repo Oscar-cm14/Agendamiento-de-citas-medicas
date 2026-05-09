@@ -1,7 +1,6 @@
 // ============================================================
 // medico.ts  –  Panel del Médico / Terapista
 // ============================================================
-
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -85,6 +84,12 @@ export class Medico implements OnInit {
   reagGuardando          = false;
   reagExito              = '';
   reagErrorGuardar       = '';
+
+  // ── Cancelación ──
+  cancelCita:   any = null;
+  cancelMotivo      = '';
+  cancelError       = '';
+  cancelando        = false;
 
   private apiUrl = 'http://localhost:8080/api/v1';
 
@@ -516,6 +521,39 @@ export class Medico implements OnInit {
   colorEstado(status: string): string {
     return { SCHEDULED: 'bg-success', COMPLETED: 'bg-secondary', CANCELLED: 'bg-danger' }
       [status] || 'bg-secondary';
+  }
+
+  // ── Cancelación ─────────────────────────────────────────
+  abrirCancelacion(cita: any) {
+    this.cancelCita   = cita;
+    this.cancelMotivo = '';
+    this.cancelError  = '';
+    this.cdr.detectChanges();
+  }
+
+  cerrarCancelacion() { this.cancelCita = null; this.cancelMotivo = ''; }
+
+  confirmarCancelacion() {
+    if (!this.cancelMotivo.trim()) { this.cancelError = 'Debe indicar el motivo.'; return; }
+    this.cancelando  = true;
+    this.cancelError = '';
+
+    this.http.patch(`${this.apiUrl}/appointments/${this.cancelCita.id}/cancel`,
+      { reason: this.cancelMotivo }, { headers: this.headers() }).subscribe({
+      next: () => {
+        this.cancelando   = false;
+        this.cancelCita   = null;
+        this.cancelMotivo = '';
+        this.cargarCitasHoy();
+        this.buscarCitas();
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        this.cancelando  = false;
+        this.cancelError = err.error?.message || 'Error al cancelar la cita.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   cerrarSesion() {

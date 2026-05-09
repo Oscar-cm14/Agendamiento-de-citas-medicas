@@ -19,45 +19,28 @@ import { ChangeDetectorRef } from '@angular/core';
 })
 export class AgendarCita implements OnInit {
 
-  // Lista completa de médicos traída del backend
   medicos: any[] = [];
-
-  // Franjas horarias disponibles del médico+fecha seleccionados
   franjas: any[] = [];
-
-  // Lista de especialidades únicas (se construye a partir de medicos[])
   especialidades: string[] = [];
-
-  // Especialidad que el paciente elige primero
   especialidadSeleccionada = '';
-
-  // Médicos que pertenecen a la especialidad seleccionada
   medicosFiltrados: any[] = [];
-
-  // ID del médico seleccionado (0 = ninguno)
   doctorId = 0;
-
-  // Fecha elegida para la cita
   fecha = '';
-
-  // Franja horaria elegida
   franjaSeleccionada: any = null;
-
-  // ID del paciente autenticado (viene del token)
   patientId: number | null = null;
-
-  // Flags de UI
   citaCreada = false;
   error = '';
   cargando = false;
-
-  // ── Sección "Mis Citas" ──
   misCitas: any[] = [];
   cargandoCitas = false;
-  errorCitas = '';           // mensaje de error en la pestaña de citas
-
-  // Pestaña activa ('agendar' | 'mis-citas')
+  errorCitas = '';
   pestanaActiva = 'agendar';
+
+  // ── Cancelación ──
+  citaCancelando: any = null;      // cita sobre la que se abrió el modal
+  motivoCancelacion = '';          // texto que escribe el paciente
+  errorCancelacion = '';
+  cancelando = false;
 
   private apiUrl = 'http://localhost:8080/api/v1';
 
@@ -71,211 +54,148 @@ export class AgendarCita implements OnInit {
   ) { }
 
   ngOnInit() {
-    // isPlatformBrowser evita errores de SSR (Angular Universal)
     if (isPlatformBrowser(this.platformId)) {
       this.patientId = this.authService.obtenerUserId();
-      this.cargarMedicos(); // cargar médicos al iniciar (para tener las especialidades listas)
-      // NO se llama cargarMisCitas() aquí; se llama cuando el usuario abre la pestaña
+      this.cargarMedicos();
     }
   }
 
-  // Construye cabecera con el JWT del paciente autenticado
   private headers(): HttpHeaders {
     const token = this.authService.obtenerToken() || '';
     return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 
-  // ── Trae todos los médicos y construye el listado de especialidades ──
   cargarMedicos() {
     this.appointmentService.listarMedicos().subscribe({
       next: (data) => {
         this.medicos = data;
-
-        // filtrar valores nulos/vacíos antes de hacer el Set
-        // Si un médico no tiene specialty asignada en la BD, se excluye
-        const especialidadesRaw = data
-          .map((m: any) => m.specialty)
-          .filter((s: any) => s && s.trim() !== '');
-
-        // Set elimina duplicados; sort() los ordena alfabéticamente
-        this.especialidades = [...new Set<string>(especialidadesRaw)].sort();
+        const raw = data.map((m: any) => m.specialty).filter((s: any) => s && s.trim() !== '');
+        this.especialidades = [...new Set<string>(raw)].sort();
       },
       error: () => this.error = 'Error al cargar médicos'
     });
   }
 
-  // ── Se ejecuta cuando el paciente cambia la especialidad en el select ──
-  // ── Se ejecuta cuando el paciente cambia la especialidad ──
-onEspecialidadChange() {
-  this.medicosFiltrados = this.medicos.filter(
-    m => m.specialty === this.especialidadSeleccionada
-  );
-  this.doctorId          = 0;
-  this.franjas           = [];
-  this.franjaSeleccionada = null;
-  this.fecha             = '';
-  this.error             = ''; // limpiar errores al cambiar especialidad
-
-  // FIX: si hay un solo médico, auto-seleccionarlo
-  // Y llamar buscarFranjas() si además ya hay fecha
-  if (this.medicosFiltrados.length === 1) {
-    this.doctorId = this.medicosFiltrados[0].id;
-    // Si el usuario ya había elegido fecha antes de cambiar especialidad,
-    // cargar las franjas directamente
-    if (this.fecha) {
-      this.buscarFranjas();
+  onEspecialidadChange() {
+    this.medicosFiltrados  = this.medicos.filter(m => m.specialty === this.especialidadSeleccionada);
+    this.doctorId          = 0;
+    this.franjas           = [];
+    this.franjaSeleccionada = null;
+    this.fecha             = '';
+    this.error             = '';
+    if (this.medicosFiltrados.length === 1) {
+      this.doctorId = this.medicosFiltrados[0].id;
+      if (this.fecha) this.buscarFranjas();
     }
+    this.cdr.detectChanges();
   }
-  this.cdr.detectChanges();
-}
 
-  // ── Carga las citas del paciente autenticado ──
   cargarMisCitas() {
-    // i patientId es null, parar YA y mostrar error
-   
     if (!this.patientId) {
-      this.cargandoCitas = false;
-      this.errorCitas = 'No se pudo identificar al paciente. Intente cerrar sesión e ingresar nuevamente.';
+      this.errorCitas = 'No se pudo identificar al paciente.';
       return;
     }
-
-    // Activar spinner y limpiar estado anterior
     this.cargandoCitas = true;
-    this.errorCitas = '';
-    this.misCitas = [];
+    this.errorCitas    = '';
+    this.misCitas      = [];
 
     const params = new HttpParams().set('patientId', this.patientId);
-
-    this.http.get<any[]>(`${this.apiUrl}/appointments`,
-      { headers: this.headers(), params }).subscribe({
-        next: (data) => {
-          this.misCitas = data || []; // guardar lista (o array vacío si viene null)
-          this.cargandoCitas = false;
-          this.cdr.detectChanges();  // forzar refresco de la vista
-        },
-        // en caso de error apagar el spinner y mostrar mensaje
+    this.http.get<any[]>(`${this.apiUrl}/appointments`, { headers: this.headers(), params })
+      .subscribe({
+        next: (data) => { this.misCitas = data || []; this.cargandoCitas = false; this.cdr.detectChanges(); },
         error: (err) => {
           this.cargandoCitas = false;
-          if (err.status === 401 || err.status === 403) {
-            this.errorCitas = 'Sesión expirada. Por favor inicie sesión nuevamente.';
-          } else {
-            this.errorCitas = 'Error al cargar las citas. Intente de nuevo.';
-          }
+          this.errorCitas = (err.status === 401 || err.status === 403)
+            ? 'Sesión expirada.' : 'Error al cargar las citas.';
           this.cdr.detectChanges();
         }
       });
   }
 
-  // ── Consulta las franjas disponibles para el médico y fecha elegidos ──
   buscarFranjas() {
     if (!this.doctorId || !this.fecha) return;
-    this.franjas           = [];
-    this.franjaSeleccionada = null;
-    this.error             = ''; // limpiar errores anteriores antes de cada consulta
-
+    this.franjas = []; this.franjaSeleccionada = null; this.error = '';
     this.appointmentService.obtenerFranjas(this.doctorId, this.fecha).subscribe({
-      next: (data) => {
-        // Filtrar solo las franjas disponibles; si el array viene vacío
-        // (p.ej. el día no está en los días laborables del médico) se
-        // muestra el aviso "No hay franjas" del template
-        this.franjas = (data || []).filter((f: any) => f.available);
-        this.cdr.detectChanges();
-      },
+      next: (data) => { this.franjas = (data || []).filter((f: any) => f.available); this.cdr.detectChanges(); },
       error: (err) => {
-        // 404 significa que el médico no tiene horario configurado aún
-        if (err.status === 404) {
-          this.franjas = [];
-          this.error = 'El médico aún no tiene horario configurado.';
-        } else {
-          this.error = 'Error al cargar las franjas horarias. Intente de nuevo.';
-        }
+        this.error = err.status === 404 ? 'El médico aún no tiene horario configurado.'
+                                        : 'Error al cargar las franjas horarias.';
         this.cdr.detectChanges();
       }
     });
   }
 
-  // ── El paciente hace clic en un botón de hora ──
-  seleccionarFranja(franja: any) {
-    if (!franja.available) return;
-    this.franjaSeleccionada = franja;
-  }
+  seleccionarFranja(franja: any) { if (franja.available) this.franjaSeleccionada = franja; }
 
-  // ── Cerrar sesión y volver al login ──
-  cerrarSesion() {
-    this.authService.cerrarSesion();
-    this.router.navigate(['/login']);
-  }
+  cerrarSesion() { this.authService.cerrarSesion(); this.router.navigate(['/login']); }
 
-  // ── Envía la cita al backend ──
   confirmarCita() {
-    // Validaciones antes de enviar
-    if (!this.patientId) {
-      this.error = 'No se ha detectado el ID del paciente.';
-      return;
-    }
-    if (!this.doctorId || !this.fecha) {
-      this.error = 'Seleccione médico y fecha.';
-      return;
-    }
-    if (!this.franjaSeleccionada) {
-      this.error = 'Seleccione una franja horaria.';
-      return;
-    }
+    if (!this.patientId) { this.error = 'No se ha detectado el ID del paciente.'; return; }
+    if (!this.doctorId || !this.fecha) { this.error = 'Seleccione médico y fecha.'; return; }
+    if (!this.franjaSeleccionada) { this.error = 'Seleccione una franja horaria.'; return; }
 
-    this.cargando = true;
-    this.error = '';
-
-    const datos = {
-      doctorId:  this.doctorId,
-      patientId: this.patientId,
-      date:      this.fecha,
-      startTime: this.franjaSeleccionada.startTime,
-      notes:     ''
-    };
+    this.cargando = true; this.error = '';
+    const datos = { doctorId: this.doctorId, patientId: this.patientId,
+                    date: this.fecha, startTime: this.franjaSeleccionada.startTime, notes: '' };
 
     this.appointmentService.crearCita(datos).subscribe({
       next: () => {
-        this.cargando = false;
-        this.citaCreada = true;
-        this.cdr.detectChanges();
-        this.cargarMisCitas(); // refrescar la lista de citas
-
-        // Limpiar el formulario automáticamente después de 2 segundos
-        setTimeout(() => {
-          this.limpiarFormulario();
-          this.citaCreada = false;
-        }, 2000);
+        this.cargando = false; this.citaCreada = true; this.cdr.detectChanges();
+        this.cargarMisCitas();
+        setTimeout(() => { this.limpiarFormulario(); this.citaCreada = false; }, 2000);
       },
       error: (err) => {
         this.cargando = false;
-        // Mensajes de error según el código HTTP
-        if (err.status === 409)      this.error = 'La franja ya fue tomada.';
-        else if (err.status === 400) this.error = 'Datos inválidos.';
+        if (err.status === 409)                    this.error = 'La franja ya fue tomada.';
+        else if (err.status === 400)               this.error = 'Datos inválidos.';
         else if (err.status === 401 || err.status === 403) this.error = 'Sesión expirada.';
-        else                         this.error = 'Error al agendar cita.';
+        else                                       this.error = 'Error al agendar cita.';
       }
     });
   }
 
-  // ── Traduce el estado de la cita al español ──
+  // ── Abrir modal de cancelación ────────────────────────────────────────────
+  abrirCancelacion(cita: any) {
+    this.citaCancelando    = cita;
+    this.motivoCancelacion = '';
+    this.errorCancelacion  = '';
+    this.cdr.detectChanges();
+  }
+
+  // ── Cerrar modal sin cancelar ─────────────────────────────────────────────
+  cerrarCancelacion() { this.citaCancelando = null; this.motivoCancelacion = ''; }
+
+  // ── Confirmar cancelación con motivo ─────────────────────────────────────
+  confirmarCancelacion() {
+    if (!this.motivoCancelacion.trim()) {
+      this.errorCancelacion = 'Debe indicar el motivo de cancelación.'; return;
+    }
+    this.cancelando = true; this.errorCancelacion = '';
+
+    this.http.patch(`${this.apiUrl}/appointments/${this.citaCancelando.id}/cancel`,
+      { reason: this.motivoCancelacion }, { headers: this.headers() }).subscribe({
+      next: () => {
+        this.cancelando        = false;
+        this.citaCancelando    = null;
+        this.motivoCancelacion = '';
+        this.cargarMisCitas();   // refrescar lista
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.cancelando       = false;
+        this.errorCancelacion = err.error?.message || 'Error al cancelar la cita.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   etiquetaEstado(status: string): string {
-    const map: any = {
-      'SCHEDULED': 'Programada',
-      'COMPLETED': 'Completada',
-      'CANCELLED': 'Cancelada'
-    };
+    const map: any = { SCHEDULED: 'Programada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' };
     return map[status] || status;
   }
 
-  // ── Resetea todos los campos del formulario ──
   limpiarFormulario() {
-    this.doctorId              = 0;
-    this.fecha                 = '';
-    this.franjas               = [];
-    this.franjaSeleccionada    = null;
-    this.error                 = '';
-    this.citaCreada            = false;
-    this.especialidadSeleccionada = '';
-    this.medicosFiltrados      = [];
+    this.doctorId = 0; this.fecha = ''; this.franjas = []; this.franjaSeleccionada = null;
+    this.error = ''; this.citaCreada = false; this.especialidadSeleccionada = ''; this.medicosFiltrados = [];
   }
 }

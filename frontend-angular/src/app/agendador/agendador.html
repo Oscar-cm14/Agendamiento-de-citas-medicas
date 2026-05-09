@@ -149,6 +149,7 @@
                 <th>Hora inicio</th>
                 <th>Hora fin</th>
                 <th>Estado</th>
+                <th>Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -516,6 +517,55 @@
           <span *ngIf="!reagGuardando">🔄 Confirmar Reagendamiento</span>
           <span *ngIf="reagGuardando">
             <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
+          </span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- MODAL DE CANCELACIÓN (Agendador)                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div *ngIf="cancelCita"
+     class="modal d-block"
+     style="background:rgba(0,0,0,0.5); position:fixed; inset:0; z-index:1050;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">❌ Cancelar Cita</h5>
+        <button class="btn-close" (click)="cerrarCancelacion()"></button>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-1">
+          <strong>Paciente:</strong> {{ cancelCita.patientName }}<br>
+          <strong>Médico:</strong>   {{ cancelCita.doctorName }}<br>
+          <strong>Fecha:</strong>    {{ cancelCita.date }} a las {{ cancelCita.startTime }}
+        </p>
+        <hr>
+        <label class="form-label fw-semibold">Motivo de cancelación *</label>
+        <textarea
+          class="form-control"
+          rows="3"
+          [(ngModel)]="cancelMotivo"
+          placeholder="Ej: El paciente solicitó cancelación por viaje...">
+        </textarea>
+        <div *ngIf="cancelError" class="alert alert-danger mt-2 py-2">
+          {{ cancelError }}
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="cerrarCancelacion()"
+                [disabled]="cancelando">Volver</button>
+        <button class="btn btn-danger" (click)="confirmarCancelacion()"
+                [disabled]="cancelando || !cancelMotivo.trim()">
+          <span *ngIf="!cancelando">Confirmar cancelación</span>
+          <span *ngIf="cancelando">
+            <span class="spinner-border spinner-border-sm me-1"></span>Cancelando...
           </span>
         </button>
       </div>

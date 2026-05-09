@@ -51,6 +51,12 @@ export class Agendador implements OnInit {
   reagExito               = '';
   reagErrorGuardar        = '';
 
+  // ── Cancelación ──
+  cancelCita: any       = null;
+  cancelMotivo          = '';
+  cancelError           = '';
+  cancelando            = false;
+
   // ── Variables pestaña CREAR ──
   nuevaCita = {
     identification: '',
@@ -446,7 +452,7 @@ export class Agendador implements OnInit {
           this.reagCitaSeleccionada = null;
           this.reagFranjas          = [];
           this.reagNuevaHora        = '';
-          this.reagBuscarCitas();   // refrescar la lista del día original
+          this.reagBuscarCitas();
           this.cdr.detectChanges();
           setTimeout(() => { this.reagExito = ''; this.cdr.detectChanges(); }, 5000);
         },
@@ -456,5 +462,37 @@ export class Agendador implements OnInit {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  // ── Cancelación ──────────────────────────────────────────────────────────
+  abrirCancelacion(cita: any) {
+    this.cancelCita   = cita;
+    this.cancelMotivo = '';
+    this.cancelError  = '';
+    this.cdr.detectChanges();
+  }
+
+  cerrarCancelacion() { this.cancelCita = null; this.cancelMotivo = ''; }
+
+  confirmarCancelacion() {
+    if (!this.cancelMotivo.trim()) { this.cancelError = 'Debe indicar el motivo.'; return; }
+    this.cancelando  = true;
+    this.cancelError = '';
+
+    this.http.patch(`${this.apiUrl}/appointments/${this.cancelCita.id}/cancel`,
+      { reason: this.cancelMotivo }, { headers: this.headers() }).subscribe({
+      next: () => {
+        this.cancelando  = false;
+        this.cancelCita  = null;
+        this.cancelMotivo = '';
+        this.buscarCitas();   // refrescar lista
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.cancelando  = false;
+        this.cancelError = err.error?.message || 'Error al cancelar la cita.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 }
