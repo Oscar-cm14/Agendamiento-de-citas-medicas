@@ -17,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+/**
+ * Implementation of PatientService.
+ * Handles RF3: patient self-registration from the web.
+ */
 @Service
 public class PatientServiceImpl implements PatientService {
 
@@ -35,6 +39,11 @@ public class PatientServiceImpl implements PatientService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * RF3: Registra un nuevo paciente desde la web.
+     * Si la cédula ya existe, retorna los datos del paciente existente
+     * en lugar de lanzar error, para que el agendador pueda reutilizarlo.
+     */
     @Override
     @Transactional
     public PatientResponse registerPatient(PatientRegistrationRequest request) {
@@ -46,8 +55,11 @@ public class PatientServiceImpl implements PatientService {
         if (existingPatient.isPresent()) {
             Patient p = existingPatient.get();
             String fullName = p.getFirstName() + " " + p.getLastName();
-            // FIX: usar query eficiente en vez de findAll()
-            String username = userRepository.findUsernameByPersonId(p.getId())
+            String username = userRepository.findAll().stream()
+                    .filter(u -> u.getPerson() != null
+                            && u.getPerson().getId().equals(p.getId()))
+                    .map(User::getUsername)
+                    .findFirst()
                     .orElse(p.getIdentification());
             return new PatientResponse(p.getId(), fullName, username, p.getEmail());
         }
@@ -57,6 +69,7 @@ public class PatientServiceImpl implements PatientService {
             throw new UsernameAlreadyExistsException("El username ya existe.");
         }
 
+        // Crear entidad Patient
         Patient patient = new Patient();
         patient.setIdentification(request.identification());
         patient.setFirstName(request.firstName());
@@ -66,6 +79,7 @@ public class PatientServiceImpl implements PatientService {
         patient.setGender(request.gender());
         patient.setBirthDate(request.birthDate());
 
+        // Crear entidad User vinculada al paciente
         User user = new User();
         user.setUsername(request.username());
         user.setPassword(passwordEncoder.encode(request.password()));
@@ -73,8 +87,10 @@ public class PatientServiceImpl implements PatientService {
         user.setRole(UserRole.PATIENT);
         user.setPerson(patient);
 
+        // Guardar (cascade guarda el patient automáticamente)
         User savedUser = userRepository.save(user);
         Patient savedPatient = (Patient) savedUser.getPerson();
+
         String fullName = savedPatient.getFirstName() + " " + savedPatient.getLastName();
 
         return new PatientResponse(
@@ -85,20 +101,27 @@ public class PatientServiceImpl implements PatientService {
         );
     }
 
+    /**
+     * Busca un paciente por cédula y retorna sus datos completos
+     * para autocompletar el formulario en el panel del agendador.
+     */
     @Override
-    @Transactional(readOnly = true)
     public Optional<PatientDetailResponse> findByIdentification(String identification) {
         return patientRepository.findByIdentification(identification)
                 .map(p -> {
-                    // FIX: usar query eficiente en vez de findAll()
-                    String username = userRepository.findUsernameByPersonId(p.getId())
+                    String fullName = p.getFirstName() + " " + p.getLastName();
+                    String username = userRepository.findAll().stream()
+                            .filter(u -> u.getPerson() != null
+                                    && u.getPerson().getId().equals(p.getId()))
+                            .map(User::getUsername)
+                            .findFirst()
                             .orElse(p.getIdentification());
                     return new PatientDetailResponse(
                             p.getId(),
                             p.getIdentification(),
                             p.getFirstName(),
                             p.getLastName(),
-                            p.getFirstName() + " " + p.getLastName(),
+                            fullName,
                             p.getEmail(),
                             p.getPhone(),
                             p.getGender(),

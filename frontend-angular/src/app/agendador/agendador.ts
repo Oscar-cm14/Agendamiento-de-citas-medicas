@@ -37,9 +37,28 @@ export class Agendador implements OnInit {
   exportando = false;
   mensajeExport = '';
 
+<<<<<<< HEAD
   // ── Cancelar cita ──
   cancelandoCitaId: number | null = null;
   mensajeCancelacion = '';
+=======
+  // ── Variables pestaña REAGENDAR ────────────────────────────
+  reagEspecialidad = '';
+  reagMedicosFiltrados: any[] = [];
+  reagDoctorId = 0;
+  reagBuscarFecha = '';
+  reagCitas: any[] = [];
+  reagBuscando = false;
+  reagError = '';
+  reagCitaSeleccionada: any = null;
+  reagNuevaFecha = '';
+  reagFranjas: any[] = [];
+  reagNuevaHora = '';
+  reagCargandoFranjas = false;
+  reagGuardando = false;
+  reagExito = '';
+  reagErrorGuardar = '';
+>>>>>>> 8c4196339942cc3c56641e1800f62e9cd221218e
 
   // ── Variables pestaña REAGENDAR ────────────────────────────
   reagEspecialidad = '';
@@ -259,6 +278,10 @@ export class Agendador implements OnInit {
         responseType: 'blob'
       }).subscribe({
         next: (blob: Blob) => {
+<<<<<<< HEAD
+=======
+          // Crear URL temporal y disparar descarga
+>>>>>>> 8c4196339942cc3c56641e1800f62e9cd221218e
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
@@ -266,6 +289,10 @@ export class Agendador implements OnInit {
           link.click();
           window.URL.revokeObjectURL(url);
 
+<<<<<<< HEAD
+=======
+          // FIX: resetear el botón y mostrar mensaje de éxito
+>>>>>>> 8c4196339942cc3c56641e1800f62e9cd221218e
           this.exportando = false;
           this.mensajeExport = '✅ CSV descargado exitosamente';
           this.cdr.detectChanges();
@@ -297,6 +324,10 @@ export class Agendador implements OnInit {
     this.http.get<any>(`${this.apiUrl}/patients/by-identification`,
       { headers: this.headers(), params }).subscribe({
         next: (paciente) => {
+<<<<<<< HEAD
+=======
+          // FIX: asignar uno por uno + detectChanges al final
+>>>>>>> 8c4196339942cc3c56641e1800f62e9cd221218e
           this.nuevaCita.firstName = paciente.firstName || '';
           this.nuevaCita.lastName = paciente.lastName || '';
           this.nuevaCita.phone = paciente.phone || '';
@@ -514,6 +545,9 @@ export class Agendador implements OnInit {
           this.reagFranjas = [];
           this.reagNuevaHora = '';
           this.reagBuscarCitas();
+          this.reagFranjas = [];
+          this.reagNuevaHora = '';
+          this.reagBuscarCitas();   // refrescar la lista del día original
           this.cdr.detectChanges();
           setTimeout(() => { this.reagExito = ''; this.cdr.detectChanges(); }, 5000);
         },

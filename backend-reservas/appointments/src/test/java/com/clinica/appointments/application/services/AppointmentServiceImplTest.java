@@ -31,7 +31,6 @@ import static org.mockito.Mockito.when;
 
 /**
  * Pruebas Unitarias para AppointmentServiceImpl.
- * Validando el 20% de Pruebas Unitarias automatizadas.
  */
 @ExtendWith(MockitoExtension.class)
 class AppointmentServiceImplTest {

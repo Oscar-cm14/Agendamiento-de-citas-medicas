@@ -86,6 +86,25 @@ export class AgendarCita implements OnInit {
     if (this.medicosFiltrados.length === 1) {
       this.doctorId = this.medicosFiltrados[0].id;
       if (this.fecha) this.buscarFranjas();
+  // ── Se ejecuta cuando el paciente cambia la especialidad en el select ──
+  // ── Se ejecuta cuando el paciente cambia la especialidad ──
+onEspecialidadChange() {
+  this.medicosFiltrados = this.medicos.filter(
+    m => m.specialty === this.especialidadSeleccionada
+  );
+  this.doctorId          = 0;
+  this.franjas           = [];
+  this.franjaSeleccionada = null;
+  this.fecha             = '';
+
+  // FIX: si hay un solo médico, auto-seleccionarlo
+  // Y llamar buscarFranjas() si además ya hay fecha
+  if (this.medicosFiltrados.length === 1) {
+    this.doctorId = this.medicosFiltrados[0].id;
+    // Si el usuario ya había elegido fecha antes de cambiar especialidad,
+    // cargar las franjas directamente
+    if (this.fecha) {
+      this.buscarFranjas();
     }
     this.cdr.detectChanges();
   }
@@ -124,6 +143,18 @@ export class AgendarCita implements OnInit {
       }
     });
   }
+  if (!this.doctorId || !this.fecha) return;
+  this.franjas           = [];
+  this.franjaSeleccionada = null;
+
+  this.appointmentService.obtenerFranjas(this.doctorId, this.fecha).subscribe({
+    next: (data) => {
+      this.franjas = data.filter((f: any) => f.available);
+      this.cdr.detectChanges(); // FIX: forzar actualización de la vista
+    },
+    error: () => this.error = 'Error al cargar franjas'
+  });
+}
 
   seleccionarFranja(franja: any) { if (franja.available) this.franjaSeleccionada = franja; }
 

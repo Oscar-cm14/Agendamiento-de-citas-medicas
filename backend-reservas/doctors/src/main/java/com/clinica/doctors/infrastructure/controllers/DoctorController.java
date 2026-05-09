@@ -36,15 +36,6 @@ public class DoctorController {
         this.doctorScheduleService = doctorScheduleService;
     }
 
-    /**
-     * POST /api/v1/doctors — Registrar un médico.
-     */
-    @PostMapping
-    public ResponseEntity<DoctorResponse> registerDoctor(
-            @Valid @RequestBody DoctorRegistrationRequest request) {
-        DoctorResponse response = doctorService.registerDoctor(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
 
     /**
      * GET /api/v1/doctors — Listar todos los médicos.
