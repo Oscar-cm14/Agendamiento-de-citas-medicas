@@ -5,14 +5,14 @@
 import { Component, Inject, PLATFORM_ID, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-agendador',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule],
   templateUrl: './agendador.html'
 })
 export class Agendador implements OnInit {
@@ -20,6 +20,9 @@ export class Agendador implements OnInit {
   pestanaActiva = 'listar';
   medicos: any[] = [];
   especialidades: string[] = [];
+
+  // ── Nombre del agendador autenticado ──
+  agendadorNombre = '';
 
   // ── Variables pestaña LISTAR ──
   especialidadBuscar = '';
@@ -33,6 +36,14 @@ export class Agendador implements OnInit {
   // ── RF5: Exportar CSV ──
   exportando = false;
   mensajeExport = '';
+
+
+  // ── Cancelar cita (modal igual al paciente) ──
+  citaCancelando: any = null;
+  motivoCancelacion = '';
+  errorCancelacion = '';
+  cancelando = false;
+  mensajeCancelacion = '';
 
   // ── Variables pestaña REAGENDAR ────────────────────────────
   reagEspecialidad = '';
@@ -51,11 +62,7 @@ export class Agendador implements OnInit {
   reagExito = '';
   reagErrorGuardar = '';
 
-  // ── Cancelación ──
-  cancelCita: any       = null;
-  cancelMotivo          = '';
-  cancelError           = '';
-  cancelando            = false;
+
 
   // ── Variables pestaña CREAR ──
   nuevaCita = {
@@ -93,6 +100,7 @@ export class Agendador implements OnInit {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
+      this.cargarNombreAgendador();
       this.cargarMedicos();
     }
   }
@@ -102,9 +110,36 @@ export class Agendador implements OnInit {
     return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 
+  // ── Carga el nombre del agendador desde el token JWT o localStorage ──
+  // ── Carga el nombre real del agendador desde el JWT de Keycloak ──
+  cargarNombreAgendador() {
+    try {
+      const token = localStorage.getItem('token') || '';
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        // Keycloak incluye given_name y family_name con el nombre real registrado
+        const givenName  = payload.given_name  || '';
+        const familyName = payload.family_name || '';
+        if (givenName || familyName) {
+          this.agendadorNombre = (givenName + ' ' + familyName).trim();
+        } else {
+          this.agendadorNombre = payload.name || payload.preferred_username || '';
+        }
+        if (this.agendadorNombre) {
+          localStorage.setItem('nombreUsuario', this.agendadorNombre);
+        }
+      }
+    } catch (e) {
+      this.agendadorNombre = localStorage.getItem('nombreUsuario') || '';
+    }
+    this.cdr.detectChanges();
+  }
+
   cerrarSesion() {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('nombreUsuario');
     this.router.navigate(['/']);
   }
 
@@ -174,9 +209,53 @@ export class Agendador implements OnInit {
       });
   }
 
+  // ── Cancelar cita (modal) ──
+  abrirCancelacion(cita: any) {
+    this.citaCancelando = cita;
+    this.motivoCancelacion = '';
+    this.errorCancelacion = '';
+    this.cdr.detectChanges();
+  }
+
+  cerrarCancelacion() {
+    this.citaCancelando = null;
+    this.motivoCancelacion = '';
+    this.errorCancelacion = '';
+  }
+
+  confirmarCancelacion() {
+    if (!this.citaCancelando) return;
+    if (!this.motivoCancelacion.trim()) {
+      this.errorCancelacion = 'Debe indicar el motivo de cancelación.';
+      return;
+    }
+
+    this.cancelando = true;
+    this.errorCancelacion = '';
+
+    this.http.patch(
+      `${this.apiUrl}/appointments/${this.citaCancelando.id}/cancel`,
+      { reason: this.motivoCancelacion },
+      { headers: this.headers() }
+    ).subscribe({
+      next: () => {
+        this.cancelando = false;
+        this.mensajeCancelacion = '✅ Cita cancelada exitosamente.';
+        this.citaCancelando = null;
+        this.motivoCancelacion = '';
+        this.cdr.detectChanges();
+        if (this.doctorIdBuscar && this.fechaBuscar) this.buscarCitas();
+        setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 4000);
+      },
+      error: (err) => {
+        this.cancelando = false;
+        this.errorCancelacion = err.error?.message || 'Error al cancelar la cita.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   // ── RF5: Exportar CSV ──
-  // FIX: se agrega this.exportando = false en el next()
-  // para que el botón deje de mostrar "Exportando..."
   exportarCsv() {
     if (!this.doctorIdBuscar || !this.fechaBuscar) return;
 
@@ -195,7 +274,7 @@ export class Agendador implements OnInit {
         responseType: 'blob'
       }).subscribe({
         next: (blob: Blob) => {
-          // Crear URL temporal y disparar descarga
+
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
@@ -203,7 +282,9 @@ export class Agendador implements OnInit {
           link.click();
           window.URL.revokeObjectURL(url);
 
+
           // FIX: resetear el botón y mostrar mensaje de éxito
+
           this.exportando = false;
           this.mensajeExport = '✅ CSV descargado exitosamente';
           this.cdr.detectChanges();
@@ -221,7 +302,6 @@ export class Agendador implements OnInit {
   }
 
   // ── Autocompletado por cédula ──
-  // FIX: se agrega cdr.detectChanges() para forzar refresco de la vista
   buscarPacientePorCedula() {
     const cedula = this.nuevaCita.identification.trim();
     if (!cedula) return;
@@ -236,7 +316,9 @@ export class Agendador implements OnInit {
     this.http.get<any>(`${this.apiUrl}/patients/by-identification`,
       { headers: this.headers(), params }).subscribe({
         next: (paciente) => {
+
           // FIX: asignar uno por uno + detectChanges al final
+
           this.nuevaCita.firstName = paciente.firstName || '';
           this.nuevaCita.lastName = paciente.lastName || '';
           this.nuevaCita.phone = paciente.phone || '';
@@ -361,6 +443,7 @@ export class Agendador implements OnInit {
     this.franjas = [];
     this.cdr.detectChanges();
   }
+
   onReagEspecialidadChange() {
     this.reagMedicosFiltrados = this.medicos.filter(
       m => m.specialty === this.reagEspecialidad
@@ -450,8 +533,8 @@ export class Agendador implements OnInit {
           this.reagGuardando = false;
           this.reagExito = `✅ Cita de ${this.reagCitaSeleccionada.patientName} reagendada para el ${this.reagNuevaFecha} a las ${this.reagNuevaHora}`;
           this.reagCitaSeleccionada = null;
-          this.reagFranjas          = [];
-          this.reagNuevaHora        = '';
+          this.reagFranjas = [];
+          this.reagNuevaHora = '';
           this.reagBuscarCitas();
           this.reagFranjas = [];
           this.reagNuevaHora = '';
@@ -465,37 +548,5 @@ export class Agendador implements OnInit {
           this.cdr.detectChanges();
         }
       });
-  }
-
-  // ── Cancelación ──────────────────────────────────────────────────────────
-  abrirCancelacion(cita: any) {
-    this.cancelCita   = cita;
-    this.cancelMotivo = '';
-    this.cancelError  = '';
-    this.cdr.detectChanges();
-  }
-
-  cerrarCancelacion() { this.cancelCita = null; this.cancelMotivo = ''; }
-
-  confirmarCancelacion() {
-    if (!this.cancelMotivo.trim()) { this.cancelError = 'Debe indicar el motivo.'; return; }
-    this.cancelando  = true;
-    this.cancelError = '';
-
-    this.http.patch(`${this.apiUrl}/appointments/${this.cancelCita.id}/cancel`,
-      { reason: this.cancelMotivo }, { headers: this.headers() }).subscribe({
-      next: () => {
-        this.cancelando  = false;
-        this.cancelCita  = null;
-        this.cancelMotivo = '';
-        this.buscarCitas();   // refrescar lista
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.cancelando  = false;
-        this.cancelError = err.error?.message || 'Error al cancelar la cita.';
-        this.cdr.detectChanges();
-      }
-    });
   }
 }

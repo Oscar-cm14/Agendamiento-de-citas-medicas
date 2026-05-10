@@ -20,6 +20,7 @@ export class Login {
 
   private keycloakUrl = 'http://localhost:8081/realms/clinica-realm/protocol/openid-connect/token';
   private clientId = 'clinica-frontend';
+  private apiUrl = 'http://localhost:8080/api/v1';
 
   constructor(
     private http: HttpClient,
@@ -50,37 +51,44 @@ export class Login {
         try {
           const token = res.access_token;
           localStorage.setItem('token', token);
-          
-          // Parse JWT para extraer el rol principal
+
           const payload = JSON.parse(atob(token.split('.')[1]));
           const roles = payload.realm_access?.roles || [];
-          
-          let role = 'PATIENT'; // default
+
+          let role = 'PATIENT';
           if (roles.includes('ADMIN')) role = 'ADMIN';
           else if (roles.includes('DOCTOR')) role = 'DOCTOR';
           else if (roles.includes('SCHEDULER')) role = 'SCHEDULER';
-          
+
           localStorage.setItem('role', role);
+          localStorage.setItem('username', this.username);
+          this.cargando = false;
+
+          if (role === 'PATIENT') {
+            // Buscamos por username (email), que es como se guarda en la BD
+            const authHeaders = new HttpHeaders({ Authorization: `Bearer ${token}` });
+            this.http.get<any>(
+              `${this.apiUrl}/patients/by-username?username=${this.username}`,
+              { headers: authHeaders }
+            ).subscribe({
+              next: (patient) => {
+                if (patient?.id) {
+                  localStorage.setItem('userId', String(patient.id));
+                }
+                this.router.navigate(['/agendar']);
+              },
+              error: () => {
+                this.router.navigate(['/agendar']);
+              }
+            });
+          } else {
+            this.navegarSegunRol(role);
+          }
 
         } catch (e) {
-          console.error("Error parseando token", e);
-        }
-
-        this.cargando = false;
-        const savedRole = localStorage.getItem('role');
-
-        switch (savedRole) {
-          case 'ADMIN':
-            this.router.navigate(['/admin']);
-            break;
-          case 'SCHEDULER':
-            this.router.navigate(['/agendador']);
-            break;
-          case 'DOCTOR':
-            this.router.navigate(['/medico']);
-            break;
-          default:
-            this.router.navigate(['/agendar']);
+          console.error('Error parseando token', e);
+          this.cargando = false;
+          this.navegarSegunRol(localStorage.getItem('role') || 'PATIENT');
         }
       },
       error: (err) => {
@@ -94,5 +102,14 @@ export class Login {
         }
       }
     });
+  }
+
+  private navegarSegunRol(role: string) {
+    switch (role) {
+      case 'ADMIN':     this.router.navigate(['/admin']);     break;
+      case 'SCHEDULER': this.router.navigate(['/agendador']); break;
+      case 'DOCTOR':    this.router.navigate(['/medico']);    break;
+      default:          this.router.navigate(['/agendar']);
+    }
   }
 }

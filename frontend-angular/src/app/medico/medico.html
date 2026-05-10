@@ -9,13 +9,20 @@
     <div>
       <h2 class="mb-0">🩺 Panel Médico</h2>
       <small class="text-muted" *ngIf="medicoNombre">
-        {{ medicoNombre }}
+        Bienvenido, <strong>{{ medicoNombre }}</strong>
         <span *ngIf="medicoEspecialidad"> · {{ medicoEspecialidad }}</span>
       </small>
     </div>
     <button class="btn btn-outline-danger" (click)="cerrarSesion()">
       Cerrar Sesión
     </button>
+  </div>
+
+  <!-- ── MENSAJE GLOBAL CANCELACIÓN ── -->
+  <div *ngIf="mensajeCancelacion" class="alert py-2 mb-3"
+    [class.alert-success]="mensajeCancelacion.startsWith('✅')"
+    [class.alert-danger]="mensajeCancelacion.startsWith('❌')">
+    {{ mensajeCancelacion }}
   </div>
 
   <!-- ── PESTAÑAS ── -->
@@ -89,6 +96,7 @@
               <th>Hora fin</th>
               <th>Estado</th>
               <th>Notas</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -103,6 +111,16 @@
                 </span>
               </td>
               <td>{{ cita.notes || '—' }}</td>
+              <td>
+                <button
+                  *ngIf="cita.status === 'SCHEDULED'"
+                  class="btn btn-sm btn-outline-danger"
+                  (click)="abrirCancelacion(cita)"
+                  title="Cancelar cita">
+                   Cancelar
+                </button>
+                <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -112,7 +130,7 @@
 
 
   <!-- ============================================================ -->
-  <!-- PESTAÑA 2: BUSCAR POR FECHA + EXPORTAR CSV                    -->
+  <!-- PESTAÑA 2: BUSCAR POR FECHA + EXPORTAR CSV + CANCELAR        -->
   <!-- ============================================================ -->
   <div *ngIf="pestanaActiva === 'buscar'">
     <div class="card shadow p-4">
@@ -157,7 +175,15 @@
         <div class="table-responsive">
           <table class="table table-striped table-hover">
             <thead class="table-dark">
-              <tr><th>#</th><th>Paciente</th><th>Hora inicio</th><th>Hora fin</th><th>Estado</th><th>Notas / Motivo</th><th>Acción</th></tr>
+              <tr>
+                <th>#</th>
+                <th>Paciente</th>
+                <th>Hora inicio</th>
+                <th>Hora fin</th>
+                <th>Estado</th>
+                <th>Notas</th>
+                <th>Acción</th>
+              </tr>
             </thead>
             <tbody>
               <tr *ngFor="let cita of citasBuscar; let i = index">
@@ -165,8 +191,22 @@
                 <td>{{ cita.patientName }}</td>
                 <td>{{ cita.startTime }}</td>
                 <td>{{ cita.endTime }}</td>
-                <td><span class="badge {{ colorEstado(cita.status) }}">{{ etiquetaEstado(cita.status) }}</span></td>
+                <td>
+                  <span class="badge {{ colorEstado(cita.status) }}">
+                    {{ etiquetaEstado(cita.status) }}
+                  </span>
+                </td>
                 <td>{{ cita.notes || '—' }}</td>
+                <td>
+                  <button
+                  *ngIf="cita.status === 'SCHEDULED'"
+                  class="btn btn-sm btn-outline-danger"
+                  (click)="abrirCancelacion(cita)"
+                  title="Cancelar cita">
+                   Cancelar
+                </button>
+                <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -437,18 +477,69 @@
         <!-- Error guardar -->
         <div *ngIf="reagErrorGuardar" class="alert alert-danger">{{ reagErrorGuardar }}</div>
 
-        <!-- Botón confirmar -->
-        <button class="btn btn-warning w-100"
-          (click)="confirmarReagendar()"
-          [disabled]="reagGuardando || !reagNuevaHora">
-          <span *ngIf="!reagGuardando">🔄 Confirmar Reagendamiento</span>
-          <span *ngIf="reagGuardando">
-            <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
-          </span>
-        </button>
+        <!-- Botones confirmar / cancelar selección -->
+        <div class="d-flex gap-2">
+          <button class="btn btn-warning flex-grow-1"
+            (click)="confirmarReagendar()"
+            [disabled]="reagGuardando || !reagNuevaHora">
+            <span *ngIf="!reagGuardando">🔄 Confirmar Reagendamiento</span>
+            <span *ngIf="reagGuardando">
+              <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
+            </span>
+          </button>
+          <button class="btn btn-outline-secondary"
+            (click)="reagCitaSeleccionada = null"
+            [disabled]="reagGuardando">
+            Cancelar
+          </button>
+        </div>
       </div>
 
     </div>
   </div>
 
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- MODAL DE CANCELACIÓN                                        -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div *ngIf="citaCancelando"
+       class="modal d-block"
+       style="background:rgba(0,0,0,0.5); position:fixed; inset:0; z-index:1050;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"> Cancelar Cita</h5>
+          <button class="btn-close" (click)="cerrarCancelacion()"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1">
+            <strong>Médico:</strong> {{ citaCancelando.doctorName || medicoNombre }}<br>
+            <strong>Fecha:</strong> {{ citaCancelando.date }} a las {{ citaCancelando.startTime }}
+          </p>
+          <hr>
+          <label class="form-label fw-semibold">Motivo de cancelación *</label>
+          <textarea
+            class="form-control"
+            rows="3"
+            [(ngModel)]="motivoCancelacion"
+            placeholder="Ej: No podré asistir por viaje de trabajo...">
+          </textarea>
+          <div *ngIf="errorCancelacion" class="alert alert-danger mt-2 py-2">
+            {{ errorCancelacion }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarCancelacion()"
+                  [disabled]="cancelando">Volver</button>
+          <button class="btn btn-danger" (click)="confirmarCancelacion()"
+                  [disabled]="cancelando || !motivoCancelacion.trim()">
+            <span *ngIf="!cancelando">Confirmar cancelación</span>
+            <span *ngIf="cancelando">
+              <span class="spinner-border spinner-border-sm me-1"></span>Cancelando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
