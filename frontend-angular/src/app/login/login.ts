@@ -64,27 +64,6 @@ export class Login {
           localStorage.setItem('username', this.username);
           this.cargando = false;
 
-          if (role === 'PATIENT') {
-            // Buscamos por username (email), que es como se guarda en la BD
-            const authHeaders = new HttpHeaders({ Authorization: `Bearer ${token}` });
-            this.http.get<any>(
-              `${this.apiUrl}/patients/by-username?username=${this.username}`,
-              { headers: authHeaders }
-            ).subscribe({
-              next: (patient) => {
-                if (patient?.id) {
-                  localStorage.setItem('userId', String(patient.id));
-                }
-                this.router.navigate(['/agendar']);
-              },
-              error: () => {
-                this.router.navigate(['/agendar']);
-              }
-            });
-          } else {
-            this.navegarSegunRol(role);
-          }
-
           // Llamar al backend para obtener el userId / personId
           const authHeaders = new HttpHeaders({ Authorization: `Bearer ${token}` });
           this.http.get<any>('http://localhost:8080/api/v1/users/me', { headers: authHeaders }).subscribe({
