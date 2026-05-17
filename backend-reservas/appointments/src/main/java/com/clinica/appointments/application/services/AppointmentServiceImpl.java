@@ -16,10 +16,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.clinica.appointments.domain.entities.AppointmentHistory;
+import com.clinica.appointments.infrastructure.repositories.AppointmentHistoryRepository;
+import com.clinica.shared.dto.RescheduleAppointmentRequest;
 
 /**
  * Implementación de AppointmentService.
@@ -32,15 +40,18 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
     private final DoctorScheduleRepository doctorScheduleRepository;
+    private final AppointmentHistoryRepository appointmentHistoryRepository;
 
     public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
             DoctorRepository doctorRepository,
             PatientRepository patientRepository,
-            DoctorScheduleRepository doctorScheduleRepository) {
+            DoctorScheduleRepository doctorScheduleRepository,
+            AppointmentHistoryRepository appointmentHistoryRepository) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
         this.doctorScheduleRepository = doctorScheduleRepository;
+        this.appointmentHistoryRepository = appointmentHistoryRepository;
     }
 
     /**
@@ -201,5 +212,87 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointment.getEndTime(),
                 appointment.getStatus(),
                 appointment.getNotes());
+    }
+
+    /**
+     * Búsqueda dinámica de reservas aplicando el patrón de diseño Builder
+     * mediante la clase AppointmentSpecificationBuilder.
+     */
+    @Override
+    public List<AppointmentResponse> searchAppointments(Long doctorId, Long patientId, LocalDate exactDate,
+            AppointmentStatus status) {
+        // Uso del Patrón Builder para construir de forma programática las consultas
+        org.springframework.data.jpa.domain.Specification<Appointment> spec = new com.clinica.appointments.infrastructure.specifications.AppointmentSpecificationBuilder()
+                .withDoctorId(doctorId)
+                .withPatientId(patientId)
+                .withExactDate(exactDate)
+                .withStatus(status)
+                .build();
+
+        return appointmentRepository.findAll(spec)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * RF6: Re-agendamiento de citas existentes para evitar que el paciente que requiere seguimiento
+     * haga una cita nueva. Se conserva el historial de cambios.
+     */
+    @Override
+    @Transactional
+    public AppointmentResponse rescheduleAppointment(Long appointmentId, RescheduleAppointmentRequest request) {
+        // Buscar la cita original
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
+
+        // Validar que la nueva franja no esté ocupada por otra cita
+        // (excluyendo la cita actual en caso de que mantenga la hora y solo cambie fecha, etc.)
+        boolean ocupado = appointmentRepository.existsByDoctorIdAndDateAndStartTime(
+                appointment.getDoctorId(), request.newDate(), request.newStartTime());
+
+        if (ocupado && !(appointment.getDate().equals(request.newDate()) && appointment.getStartTime().equals(request.newStartTime()))) {
+            throw new RuntimeException("Ya existe una cita en esa franja horaria para el médico");
+        }
+
+        // Calcular nuevo endTime usando el intervalo del médico
+        int intervalMinutes = doctorScheduleRepository.findByDoctorId(appointment.getDoctorId())
+                .map(DoctorSchedule::getIntervalMinutes)
+                .filter(i -> i != null && i > 0)
+                .orElse(30);
+        LocalTime newEndTime = request.newStartTime().plusMinutes(intervalMinutes);
+
+        // Extraer usuario responsable del SecurityContext
+        String changedBy = "system"; // fallback
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !authentication.getPrincipal().equals("anonymousUser")) {
+            changedBy = authentication.getName();
+        }
+
+        // Crear registro en el historial
+        AppointmentHistory history = new AppointmentHistory();
+        history.setAppointment(appointment);
+        history.setPreviousDate(appointment.getDate());
+        history.setPreviousStartTime(appointment.getStartTime());
+        history.setPreviousEndTime(appointment.getEndTime());
+        history.setNewDate(request.newDate());
+        history.setNewStartTime(request.newStartTime());
+        history.setNewEndTime(newEndTime);
+        history.setChangedAt(LocalDateTime.now());
+        history.setChangedBy(changedBy);
+        history.setReason(request.reason());
+
+        appointmentHistoryRepository.save(history);
+
+        // Actualizar la cita principal
+        appointment.setDate(request.newDate());
+        appointment.setStartTime(request.newStartTime());
+        appointment.setEndTime(newEndTime);
+        // Podríamos actualizar el estado si fuera necesario, por ahora lo mantenemos o forzamos a SCHEDULED
+        appointment.setStatus(AppointmentStatus.SCHEDULED);
+
+        Appointment saved = appointmentRepository.save(appointment);
+
+        return toResponse(saved);
     }
 }

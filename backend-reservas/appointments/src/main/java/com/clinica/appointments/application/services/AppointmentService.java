@@ -23,4 +23,9 @@ public interface AppointmentService {
     
    // Panel paciente: listar sus propias citas
     List<AppointmentResponse> listAppointmentsByPatient(Long patientId);
+
+    // Búsqueda dinámica con Patrón Builder (Specification)
+    List<AppointmentResponse> searchAppointments(Long doctorId, Long patientId, LocalDate exactDate, com.clinica.shared.domain.entities.AppointmentStatus status);
+    // RF6: Re-agendamiento de cita
+    AppointmentResponse rescheduleAppointment(Long appointmentId, com.clinica.shared.dto.RescheduleAppointmentRequest request);
 }

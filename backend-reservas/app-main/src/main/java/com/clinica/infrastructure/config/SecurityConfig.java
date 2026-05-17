@@ -40,10 +40,13 @@ public class SecurityConfig {
 
                 // ── Públicos ──────────────────────────────────────────────
                 .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/patients/register").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/schedulers/register").permitAll()
 
                 // ── Solo ADMIN ────────────────────────────────────────────
                 .requestMatchers("/api/v1/configurations/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/doctors/schedules/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/doctors").hasRole("ADMIN")
 
                 // ── Médicos ───────────────────────────────────────────────
                 // Listar médicos: todos los roles autenticados

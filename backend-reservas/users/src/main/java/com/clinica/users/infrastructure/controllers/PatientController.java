@@ -38,4 +38,14 @@ public class PatientController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    /**
+     * RF3: Registrar un paciente desde la web
+     * POST /api/v1/patients/register
+     */
+    @PostMapping("/register")
+    public ResponseEntity<PatientResponse> registerPatient(
+            @Valid @RequestBody PatientRegistrationRequest request) {
+        return new ResponseEntity<>(patientService.registerPatient(request), HttpStatus.CREATED);
+    }
 }

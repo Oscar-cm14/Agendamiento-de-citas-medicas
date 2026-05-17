@@ -477,14 +477,12 @@ export class Medico implements OnInit {
 
     // El backend actualiza la cita existente con nueva fecha y hora
     const payload = {
-      doctorId  : this.reagCitaSeleccionada.doctorId,
-      patientId : this.reagCitaSeleccionada.patientId,
-      date      : this.reagNuevaFecha,
-      startTime : this.reagNuevaHora,
-      notes     : this.reagCitaSeleccionada.notes || ''
+      newDate: this.reagNuevaFecha,
+      newStartTime: this.reagNuevaHora,
+      reason: this.reagCitaSeleccionada.notes || 'Reagendamiento solicitado por el médico'
     };
 
-    this.http.put(`${this.apiUrl}/appointments/${this.reagCitaSeleccionada.id}`,
+    this.http.put(`${this.apiUrl}/appointments/${this.reagCitaSeleccionada.id}/reschedule`,
       payload, { headers: this.headers() }).subscribe({
         next: () => {
           this.reagGuardando    = false;

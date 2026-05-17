@@ -62,25 +62,25 @@ export class Login {
           
           localStorage.setItem('role', role);
 
+          // Llamar al backend para obtener el userId / personId
+          const authHeaders = new HttpHeaders({ Authorization: `Bearer ${token}` });
+          this.http.get<any>('http://localhost:8080/api/v1/users/me', { headers: authHeaders }).subscribe({
+            next: (userData) => {
+              localStorage.setItem('userId', userData.personId);
+              this.cargando = false;
+              this.redirigirSegunRol(role);
+            },
+            error: (err) => {
+              console.error('Error obteniendo perfil de usuario', err);
+              this.cargando = false;
+              // Fallback en caso de error
+              this.redirigirSegunRol(role);
+            }
+          });
+
         } catch (e) {
           console.error("Error parseando token", e);
-        }
-
-        this.cargando = false;
-        const savedRole = localStorage.getItem('role');
-
-        switch (savedRole) {
-          case 'ADMIN':
-            this.router.navigate(['/admin']);
-            break;
-          case 'SCHEDULER':
-            this.router.navigate(['/agendador']);
-            break;
-          case 'DOCTOR':
-            this.router.navigate(['/medico']);
-            break;
-          default:
-            this.router.navigate(['/agendar']);
+          this.cargando = false;
         }
       },
       error: (err) => {
@@ -94,5 +94,21 @@ export class Login {
         }
       }
     });
+  }
+
+  private redirigirSegunRol(role: string) {
+    switch (role) {
+      case 'ADMIN':
+        this.router.navigate(['/admin']);
+        break;
+      case 'SCHEDULER':
+        this.router.navigate(['/agendador']);
+        break;
+      case 'DOCTOR':
+        this.router.navigate(['/medico']);
+        break;
+      default:
+        this.router.navigate(['/agendar']);
+    }
   }
 }
