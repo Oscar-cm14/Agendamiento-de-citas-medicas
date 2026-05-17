@@ -20,6 +20,11 @@ public interface AppointmentService {
 
     // Búsqueda dinámica con Patrón Builder (Specification)
     List<AppointmentResponse> searchAppointments(Long doctorId, Long patientId, LocalDate exactDate, com.clinica.shared.domain.entities.AppointmentStatus status);
+    
     // RF6: Re-agendamiento de cita
     AppointmentResponse rescheduleAppointment(Long appointmentId, com.clinica.shared.dto.RescheduleAppointmentRequest request);
+    
+    AppointmentResponse rescheduleAppointment(Long appointmentId, AppointmentRequest request);
+    
+    AppointmentResponse cancelAppointment(Long appointmentId, CancelRequest request);
 }
