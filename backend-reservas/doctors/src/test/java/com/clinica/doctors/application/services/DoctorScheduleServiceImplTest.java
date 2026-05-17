@@ -127,4 +127,29 @@ class DoctorScheduleServiceImplTest {
 
         assertEquals("Horario no configurado para este médico", exception.getMessage());
     }
+
+    @Test
+    @DisplayName("Happy Path: Consulta de horario exitosa")
+    void getScheduleByDoctor_Success() {
+        // Arrange
+        DoctorSchedule schedule = new DoctorSchedule();
+        schedule.setId(10L);
+        schedule.setDoctorId(1L);
+        schedule.setWorkingDays(validRequest.workingDays());
+        schedule.setStartTime(validRequest.startTime());
+        schedule.setEndTime(validRequest.endTime());
+        schedule.setIntervalMinutes(validRequest.intervalMinutes());
+
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(mockDoctor));
+        when(scheduleRepository.findByDoctorId(1L)).thenReturn(Optional.of(schedule));
+
+        // Act
+        DoctorScheduleResponse response = scheduleService.getScheduleByDoctor(1L);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(1L, response.doctorId());
+        assertEquals("Ana López", response.doctorName());
+        assertEquals(20, response.intervalMinutes());
+    }
 }

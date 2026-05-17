@@ -11,10 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * REST Controller para el registro de Agendadores.
- * Solo accesible por ADMIN.
- */
 @RestController
 @RequestMapping("/api/v1/schedulers")
 public class SchedulerController {
@@ -25,15 +21,9 @@ public class SchedulerController {
         this.schedulerService = schedulerService;
     }
 
-    /**
-     * POST /api/v1/schedulers/register — Registrar un nuevo agendador.
-     * El admin crea el usuario con username y password; esto también
-     * crea el usuario en Keycloak con rol SCHEDULER.
-     */
     @PostMapping("/register")
     public ResponseEntity<SchedulerResponse> registerScheduler(
             @Valid @RequestBody SchedulerRegistrationRequest request) {
-        SchedulerResponse response = schedulerService.registerScheduler(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return new ResponseEntity<>(schedulerService.registerScheduler(request), HttpStatus.CREATED);
     }
 }

@@ -78,33 +78,13 @@ public class PatientController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // =========================================================
-    // Buscar por username  ←  ENDPOINT NUEVO
-    // =========================================================
-
     /**
-     * GET /api/v1/patients/by-username?username=CEDULA_O_EMAIL
-     *
-     * Busca un paciente por su username (el login que usó al registrarse).
-     * Usado por el frontend (login.ts y agendar-cita.ts) para obtener
-     * el ID numérico del paciente al iniciar sesión con Keycloak.
-     *
-     * Flujo:
-     *   1. Paciente inicia sesión → Keycloak entrega JWT
-     *   2. Frontend extrae preferred_username del JWT
-     *   3. Llama a este endpoint para obtener patient.id
-     *   4. Guarda el ID en localStorage para las peticiones de citas
-     *
-     * Respuestas:
-     *   200 OK       → paciente encontrado
-     *   404 Not Found → no existe paciente con ese username
+     * RF3: Registrar un paciente desde la web
+     * POST /api/v1/patients/register
      */
-    @GetMapping("/by-username")
-    public ResponseEntity<PatientDetailResponse> findByUsername(
-            @RequestParam String username) {
-
-        return patientService.findByUsername(username)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @PostMapping("/register")
+    public ResponseEntity<PatientResponse> registerPatient(
+            @Valid @RequestBody PatientRegistrationRequest request) {
+        return new ResponseEntity<>(patientService.registerPatient(request), HttpStatus.CREATED);
     }
 }

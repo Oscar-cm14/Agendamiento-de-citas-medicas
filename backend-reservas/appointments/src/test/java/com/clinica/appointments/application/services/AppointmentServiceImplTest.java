@@ -21,6 +21,14 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Optional;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.clinica.appointments.domain.entities.AppointmentHistory;
+import com.clinica.appointments.infrastructure.repositories.AppointmentHistoryRepository;
+import com.clinica.shared.dto.RescheduleAppointmentRequest;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,6 +51,12 @@ class AppointmentServiceImplTest {
 
     @Mock
     private PatientRepository patientRepository;
+
+    @Mock
+    private com.clinica.doctors.infrastructure.repositories.DoctorScheduleRepository doctorScheduleRepository;
+
+    @Mock
+    private AppointmentHistoryRepository appointmentHistoryRepository;
 
     @InjectMocks
     private AppointmentServiceImpl appointmentService;
@@ -81,6 +95,7 @@ class AppointmentServiceImplTest {
         when(patientRepository.findById(2L)).thenReturn(Optional.of(mockPatient));
         when(appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                 1L, LocalDate.of(2026, 3, 22), LocalTime.of(10, 0))).thenReturn(false);
+        when(doctorScheduleRepository.findByDoctorId(1L)).thenReturn(Optional.empty());
 
         Appointment savedAppointment = new Appointment();
         savedAppointment.setId(100L);
@@ -145,5 +160,160 @@ class AppointmentServiceImplTest {
         
         // Verificar que no se guardó la cita en bd
         verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
+    @DisplayName("Happy Path: Lista citas por médico y fecha")
+    void listAppointmentsByDoctorAndDate_Success() {
+        // Arrange
+        Appointment app = new Appointment();
+        app.setId(10L);
+        app.setDoctorId(1L);
+        app.setPatientId(2L);
+        when(appointmentRepository.findByDoctorIdAndDate(1L, LocalDate.of(2026, 3, 22))).thenReturn(java.util.List.of(app));
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(mockDoctor));
+        when(patientRepository.findById(2L)).thenReturn(Optional.of(mockPatient));
+
+        // Act
+        java.util.List<AppointmentResponse> list = appointmentService.listAppointmentsByDoctorAndDate(1L, LocalDate.of(2026, 3, 22));
+
+        // Assert
+        assertEquals(1, list.size());
+        assertEquals(10L, list.get(0).id());
+        assertEquals("Juan Pérez", list.get(0).doctorName());
+        assertEquals("María Gómez", list.get(0).patientName());
+    }
+
+    @Test
+    @DisplayName("Happy Path: Lista citas por paciente")
+    void listAppointmentsByPatient_Success() {
+        // Arrange
+        Appointment app = new Appointment();
+        app.setId(11L);
+        app.setDoctorId(1L);
+        app.setPatientId(2L);
+        when(appointmentRepository.findByPatientId(2L)).thenReturn(java.util.List.of(app));
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(mockDoctor));
+        when(patientRepository.findById(2L)).thenReturn(Optional.of(mockPatient));
+
+        // Act
+        java.util.List<AppointmentResponse> list = appointmentService.listAppointmentsByPatient(2L);
+
+        // Assert
+        assertEquals(1, list.size());
+        assertEquals(11L, list.get(0).id());
+    }
+
+    @Test
+    @DisplayName("Happy Path: Obtiene franjas disponibles con horario configurado")
+    void getAvailableSlots_WithSchedule() {
+        // Arrange
+        LocalDate date = LocalDate.of(2026, 3, 23); // Monday
+        com.clinica.doctors.domain.entities.DoctorSchedule schedule = new com.clinica.doctors.domain.entities.DoctorSchedule();
+        schedule.setWorkingDays(java.util.Set.of(date.getDayOfWeek()));
+        schedule.setStartTime(LocalTime.of(8, 0));
+        schedule.setEndTime(LocalTime.of(9, 0));
+        schedule.setIntervalMinutes(30);
+
+        when(doctorScheduleRepository.findByDoctorId(1L)).thenReturn(Optional.of(schedule));
+        when(appointmentRepository.existsByDoctorIdAndDateAndStartTime(
+                1L, date, LocalTime.of(8, 0))).thenReturn(false);
+        when(appointmentRepository.existsByDoctorIdAndDateAndStartTime(
+                1L, date, LocalTime.of(8, 30))).thenReturn(true);
+
+        // Act
+        java.util.List<com.clinica.shared.dto.AvailableSlotResponse> slots = appointmentService.getAvailableSlots(1L, date);
+
+        // Assert
+        assertEquals(2, slots.size());
+        assertEquals(LocalTime.of(8, 0), slots.get(0).startTime());
+        assertEquals(true, slots.get(0).available()); // First slot is available
+        assertEquals(LocalTime.of(8, 30), slots.get(1).startTime());
+        assertEquals(false, slots.get(1).available()); // Second slot is occupied
+    }
+
+    @Test
+    @DisplayName("Happy Path: Re-agenda una cita exitosamente conservando el historial")
+    void rescheduleAppointment_Success() {
+        // Arrange
+        Long appointmentId = 1L;
+        RescheduleAppointmentRequest rescheduleRequest = new RescheduleAppointmentRequest(
+                LocalDate.of(2026, 4, 10),
+                LocalTime.of(14, 0),
+                "Paciente no puede asistir"
+        );
+
+        Appointment existingAppointment = new Appointment();
+        existingAppointment.setId(appointmentId);
+        existingAppointment.setDoctorId(1L);
+        existingAppointment.setPatientId(2L);
+        existingAppointment.setDate(LocalDate.of(2026, 3, 22));
+        existingAppointment.setStartTime(LocalTime.of(10, 0));
+        existingAppointment.setEndTime(LocalTime.of(10, 30));
+        existingAppointment.setStatus(AppointmentStatus.SCHEDULED);
+
+        when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(existingAppointment));
+        when(appointmentRepository.existsByDoctorIdAndDateAndStartTime(
+                1L, LocalDate.of(2026, 4, 10), LocalTime.of(14, 0))).thenReturn(false);
+        when(doctorScheduleRepository.findByDoctorId(1L)).thenReturn(Optional.empty()); // Default 30 mins
+        
+        // Mock SecurityContext with real Authentication
+        Authentication authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("testUser", "password", java.util.Collections.emptyList());
+        SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(appointmentHistoryRepository.save(any(AppointmentHistory.class))).thenAnswer(i -> i.getArgument(0));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArgument(0));
+        
+        // Mocks para toResponse()
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(mockDoctor));
+        when(patientRepository.findById(2L)).thenReturn(Optional.of(mockPatient));
+
+        // Act
+        AppointmentResponse response = appointmentService.rescheduleAppointment(appointmentId, rescheduleRequest);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(LocalDate.of(2026, 4, 10), response.date());
+        assertEquals(LocalTime.of(14, 0), response.startTime());
+        assertEquals(LocalTime.of(14, 30), response.endTime());
+        
+        verify(appointmentHistoryRepository).save(any(AppointmentHistory.class));
+        verify(appointmentRepository).save(any(Appointment.class));
+        
+        // Clear SecurityContext
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("Edge Case/Error: Falla al re-agendar si la nueva franja está ocupada")
+    void rescheduleAppointment_SlotOccupied() {
+        // Arrange
+        Long appointmentId = 1L;
+        RescheduleAppointmentRequest rescheduleRequest = new RescheduleAppointmentRequest(
+                LocalDate.of(2026, 4, 10),
+                LocalTime.of(14, 0),
+                "Paciente no puede asistir"
+        );
+
+        Appointment existingAppointment = new Appointment();
+        existingAppointment.setId(appointmentId);
+        existingAppointment.setDoctorId(1L);
+        existingAppointment.setDate(LocalDate.of(2026, 3, 22));
+        existingAppointment.setStartTime(LocalTime.of(10, 0));
+
+        when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(existingAppointment));
+        when(appointmentRepository.existsByDoctorIdAndDateAndStartTime(
+                1L, LocalDate.of(2026, 4, 10), LocalTime.of(14, 0))).thenReturn(true);
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            appointmentService.rescheduleAppointment(appointmentId, rescheduleRequest);
+        });
+
+        assertEquals("Ya existe una cita en esa franja horaria para el médico", exception.getMessage());
+        
+        verify(appointmentHistoryRepository, never()).save(any(AppointmentHistory.class));
     }
 }

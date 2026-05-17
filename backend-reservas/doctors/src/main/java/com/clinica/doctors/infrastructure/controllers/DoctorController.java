@@ -83,4 +83,21 @@ public class DoctorController {
     public ResponseEntity<DoctorResponse> getDoctorById(@PathVariable Long id) {
         return ResponseEntity.ok(doctorService.getDoctorById(id));
     }
+
+    /**
+     * GET /api/v1/doctors/by-user/{userId} — Obtener un médico por User ID (personId).
+     */
+    @GetMapping("/by-user/{userId}")
+    public ResponseEntity<DoctorResponse> getDoctorByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(doctorService.getDoctorById(userId));
+    }
+
+    /**
+     * POST /api/v1/doctors — Registrar un nuevo médico.
+     */
+    @PostMapping
+    public ResponseEntity<DoctorResponse> registerDoctor(
+            @Valid @RequestBody DoctorRegistrationRequest request) {
+        return new ResponseEntity<>(doctorService.registerDoctor(request), HttpStatus.CREATED);
+    }
 }
