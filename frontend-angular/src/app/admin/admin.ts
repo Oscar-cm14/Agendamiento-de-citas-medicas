@@ -8,7 +8,7 @@ import { ChangeDetectorRef } from '@angular/core';
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule],
   templateUrl: './admin.html'
 })
 export class Admin implements OnInit {

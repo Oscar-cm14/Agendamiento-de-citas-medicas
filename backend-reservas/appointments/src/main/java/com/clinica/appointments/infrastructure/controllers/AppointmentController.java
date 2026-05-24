@@ -64,6 +64,12 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.cancelAppointment(id, request));
     }
 
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<AppointmentResponse> updateStatus(
+            @PathVariable Long id, @Valid @RequestBody com.clinica.shared.dto.UpdateAppointmentStatusRequest request) {
+        return ResponseEntity.ok(appointmentService.updateAppointmentStatus(id, request));
+    }
+
     @GetMapping("/slots")
     public ResponseEntity<List<AvailableSlotResponse>> slots(
             @RequestParam Long doctorId,

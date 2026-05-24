@@ -95,8 +95,7 @@
               <th>Hora inicio</th>
               <th>Hora fin</th>
               <th>Estado</th>
-              <th>Notas</th>
-              <th>Acción</th>
+              <th>Notas / Motivo</th>
             </tr>
           </thead>
           <tbody>
@@ -106,20 +105,21 @@
               <td>{{ cita.startTime }}</td>
               <td>{{ cita.endTime }}</td>
               <td>
-                <span class="badge {{ colorEstado(cita.status) }}">
-                  {{ etiquetaEstado(cita.status) }}
-                </span>
+                <select class="form-select form-select-sm badge {{ colorEstado(cita.status) }} border-0 shadow-sm"
+                        style="width: auto; background-image: none; padding-right: 0.5rem; cursor: pointer; font-size: 0.85em;"
+                        [ngModel]="cita.status"
+                        (ngModelChange)="cambiarEstado(cita, $event)">
+                  <option class="bg-white text-primary fw-bold" value="SCHEDULED">Programada</option>
+                  <option class="bg-white text-success fw-bold" value="COMPLETED">Atendida</option>
+                  <option class="bg-white text-danger fw-bold" value="CANCELLED">Cancelada</option>
+                  <option class="bg-white text-warning fw-bold" value="NO_SHOW">No asistida</option>
+                </select>
               </td>
-              <td>{{ cita.notes || '—' }}</td>
               <td>
-                <button
-                  *ngIf="cita.status === 'SCHEDULED'"
-                  class="btn btn-sm btn-outline-danger"
-                  (click)="abrirCancelacion(cita)"
-                  title="Cancelar cita">
-                   Cancelar
-                </button>
-                <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
+                <span *ngIf="cita.status !== 'CANCELLED'">{{ cita.notes || '—' }}</span>
+                <span *ngIf="cita.status === 'CANCELLED'" class="text-danger small">
+                  <strong>Motivo:</strong> {{ cita.cancellationReason || '—' }}
+                </span>
               </td>
             </tr>
           </tbody>
@@ -181,8 +181,7 @@
                 <th>Hora inicio</th>
                 <th>Hora fin</th>
                 <th>Estado</th>
-                <th>Notas</th>
-                <th>Acción</th>
+                <th>Notas / Motivo</th>
               </tr>
             </thead>
             <tbody>
@@ -192,20 +191,21 @@
                 <td>{{ cita.startTime }}</td>
                 <td>{{ cita.endTime }}</td>
                 <td>
-                  <span class="badge {{ colorEstado(cita.status) }}">
-                    {{ etiquetaEstado(cita.status) }}
-                  </span>
+                  <select class="form-select form-select-sm badge {{ colorEstado(cita.status) }} border-0 shadow-sm"
+                          style="width: auto; background-image: none; padding-right: 0.5rem; cursor: pointer; font-size: 0.85em;"
+                          [ngModel]="cita.status"
+                          (ngModelChange)="cambiarEstado(cita, $event)">
+                    <option class="bg-white text-primary fw-bold" value="SCHEDULED">Programada</option>
+                    <option class="bg-white text-success fw-bold" value="COMPLETED">Atendida</option>
+                    <option class="bg-white text-danger fw-bold" value="CANCELLED">Cancelada</option>
+                    <option class="bg-white text-warning fw-bold" value="NO_SHOW">No asistida</option>
+                  </select>
                 </td>
-                <td>{{ cita.notes || '—' }}</td>
                 <td>
-                  <button
-                  *ngIf="cita.status === 'SCHEDULED'"
-                  class="btn btn-sm btn-outline-danger"
-                  (click)="abrirCancelacion(cita)"
-                  title="Cancelar cita">
-                   Cancelar
-                </button>
-                <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
+                  <span *ngIf="cita.status !== 'CANCELLED'">{{ cita.notes || '—' }}</span>
+                  <span *ngIf="cita.status === 'CANCELLED'" class="text-danger small">
+                    <strong>Motivo:</strong> {{ cita.cancellationReason || '—' }}
+                  </span>
                 </td>
               </tr>
             </tbody>

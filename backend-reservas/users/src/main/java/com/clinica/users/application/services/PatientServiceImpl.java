@@ -11,6 +11,7 @@ import com.clinica.users.domain.entities.User;
 import com.clinica.users.infrastructure.repositories.PatientRepository;
 import com.clinica.users.infrastructure.repositories.PersonRepository;
 import com.clinica.users.infrastructure.repositories.UserRepository;
+import com.clinica.shared.infrastructure.keycloak.KeycloakAdminService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,15 +35,18 @@ public class PatientServiceImpl implements PatientService {
     private final PatientRepository  patientRepository;
     private final PersonRepository   personRepository;
     private final PasswordEncoder    passwordEncoder;
+    private final KeycloakAdminService keycloakAdminService;
 
     public PatientServiceImpl(UserRepository userRepository,
                               PatientRepository patientRepository,
                               PersonRepository personRepository,
-                              PasswordEncoder passwordEncoder) {
-        this.userRepository    = userRepository;
-        this.patientRepository = patientRepository;
-        this.personRepository  = personRepository;
-        this.passwordEncoder   = passwordEncoder;
+                              PasswordEncoder passwordEncoder,
+                              KeycloakAdminService keycloakAdminService) {
+        this.userRepository       = userRepository;
+        this.patientRepository    = patientRepository;
+        this.personRepository     = personRepository;
+        this.passwordEncoder      = passwordEncoder;
+        this.keycloakAdminService = keycloakAdminService;
     }
 
     // =========================================================
@@ -101,6 +105,16 @@ public class PatientServiceImpl implements PatientService {
         User    savedUser    = userRepository.save(user);
         Patient savedPatient = (Patient) savedUser.getPerson();
         String  fullName     = savedPatient.getFirstName() + " " + savedPatient.getLastName();
+
+        // 2. Crear el usuario en Keycloak con rol PATIENT
+        keycloakAdminService.createUser(
+                request.username(),
+                request.password(),
+                request.email(),
+                request.firstName(),
+                request.lastName(),
+                "PATIENT"
+        );
 
         return new PatientResponse(
                 savedPatient.getId(),
