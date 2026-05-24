@@ -19,7 +19,11 @@ export class Formulario {
   email = '';
   identificacion = '';
   contrasena = '';
+  confirmarContrasena = '';
+  mostrarContrasena = false;
+  mostrarConfirmarContrasena = false;
   celular = '';
+  codigoPais = '+57';
   genero = '';
 
   nombresError = '';
@@ -27,6 +31,9 @@ export class Formulario {
   emailError = '';
   identificacionError = '';
   contrasenaError = '';
+  confirmarContrasenaError = '';
+  celularError = '';
+  generoError = '';
   registroExitoso = false;
   cargando = false;
   errorServidor = '';
@@ -35,18 +42,40 @@ export class Formulario {
     private authService: AuthService,
     private cdr: ChangeDetectorRef) { }
 
+  limpiarTexto(valor: string): string {
+    if (!valor) return '';
+    // 1. Eliminar tildes y marcas diacríticas
+    let limpio = valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // 2. Eliminar espacios múltiples y hacer trim
+    limpio = limpio.trim().replace(/\s+/g, ' ');
+    // 3. Capitalizar primera letra de cada palabra
+    limpio = limpio.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+    
+    return limpio;
+  }
+
   validarNombres(valor: string) {
-    this.nombresError = valor.trim() === '' ? 'Los nombres son obligatorios' : '';
+    this.nombres = this.limpiarTexto(valor);
+    if (this.nombres === '') {
+      this.nombresError = 'Los nombres son obligatorios';
+    } else {
+      this.nombresError = '';
+    }
   }
 
   validarApellidos(valor: string) {
-    this.apellidosError = valor.trim() === '' ? 'Los apellidos son obligatorios' : '';
+    this.apellidos = this.limpiarTexto(valor);
+    if (this.apellidos === '') {
+      this.apellidosError = 'Los apellidos son obligatorios';
+    } else {
+      this.apellidosError = '';
+    }
   }
 
   validarEmail(valor: string) {
-    if (valor.trim() === '') {
-      this.emailError = 'El correo es obligatorio';
-    } else if (!valor.includes('@') || !valor.includes('.')) {
+    if (valor.trim() !== '' && (!valor.includes('@') || !valor.includes('.'))) {
       this.emailError = 'Ingrese un correo válido';
     } else {
       this.emailError = '';
@@ -66,6 +95,28 @@ export class Formulario {
     } else {
       this.contrasenaError = '';
     }
+    // Si ya hay algo en confirmarContrasena, revalidarlo para que coincida
+    if (this.confirmarContrasena) {
+      this.validarConfirmarContrasena();
+    }
+  }
+
+  validarConfirmarContrasena() {
+    if (this.confirmarContrasena.trim() === '') {
+      this.confirmarContrasenaError = 'Debe confirmar la contraseña';
+    } else if (this.confirmarContrasena !== this.contrasena) {
+      this.confirmarContrasenaError = 'Las contraseñas no coinciden';
+    } else {
+      this.confirmarContrasenaError = '';
+    }
+  }
+
+  validarCelular(valor: string) {
+    this.celularError = valor.trim() === '' ? 'El celular es obligatorio' : '';
+  }
+
+  validarGenero(valor: string) {
+    this.generoError = valor.trim() === '' ? 'El género es obligatorio' : '';
   }
 
   registrar() {
@@ -74,9 +125,13 @@ export class Formulario {
     this.validarEmail(this.email);
     this.validarIdentificacion(this.identificacion);
     this.validarContrasena(this.contrasena);
+    this.validarConfirmarContrasena();
+    this.validarCelular(this.celular);
+    this.validarGenero(this.genero);
 
     const hayErrores = this.nombresError || this.apellidosError || this.emailError
-      || this.identificacionError || this.contrasenaError;
+      || this.identificacionError || this.contrasenaError || this.confirmarContrasenaError
+      || this.celularError || this.generoError;
 
     if (hayErrores) return;
 
@@ -87,10 +142,10 @@ export class Formulario {
       identification: this.identificacion,
       firstName: this.nombres.trim(),
       lastName: this.apellidos.trim(),
-      phone: this.celular,
+      phone: `${this.codigoPais} ${this.celular.trim()}`,
       gender: this.genero,
       email: this.email,
-      username: this.email,
+      username: this.identificacion,
       password: this.contrasena
     };
 

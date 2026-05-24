@@ -27,4 +27,6 @@ public interface AppointmentService {
     AppointmentResponse rescheduleAppointment(Long appointmentId, AppointmentRequest request);
     
     AppointmentResponse cancelAppointment(Long appointmentId, CancelRequest request);
+
+    AppointmentResponse updateAppointmentStatus(Long appointmentId, com.clinica.shared.dto.UpdateAppointmentStatusRequest request);
 }

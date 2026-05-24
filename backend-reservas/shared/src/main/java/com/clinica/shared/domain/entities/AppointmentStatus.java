@@ -7,5 +7,6 @@ package com.clinica.shared.domain.entities;
 public enum AppointmentStatus {
     SCHEDULED,   // Agendada
     CANCELLED,   // Cancelada
-    COMPLETED    // Completada
+    COMPLETED,   // Completada
+    NO_SHOW      // No asistida
 }

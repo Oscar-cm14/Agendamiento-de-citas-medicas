@@ -12,10 +12,21 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { ChangeDetectorRef } from '@angular/core';
 
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatNativeDateModule } from '@angular/material/core';
 @Component({
   selector: 'app-agendar-cita',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [
+    FormsModule, 
+    CommonModule,
+    MatDatepickerModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatNativeDateModule
+  ],
   templateUrl: './agendar-cita.html'
 })
 export class AgendarCita implements OnInit {
@@ -26,12 +37,14 @@ export class AgendarCita implements OnInit {
   especialidadSeleccionada = '';
   medicosFiltrados: any[] = [];
   doctorId = 0;
-  fecha = '';
+  fecha: Date | null = null;
+  fechaStr = '';
   franjaSeleccionada: any = null;
   patientId: number | null = null;
   citaCreada = false;
   error = '';
   cargando = false;
+  cargandoFranjas = false;
   misCitas: any[] = [];
   cargandoCitas = false;
   errorCitas = '';
@@ -45,6 +58,19 @@ export class AgendarCita implements OnInit {
   motivoCancelacion = '';
   errorCancelacion = '';
   cancelando = false;
+
+  // ── REGLAS DE NEGOCIO ──
+  tieneCitaPendiente = false;
+  tieneConsultaGeneralCompletada = false;
+
+  // ── HORARIOS Y FESTIVOS ──
+  doctorWorkingDays: string[] = [];
+  minDate = new Date();
+  festivosColombiaStr: string[] = [
+    '2024-01-01', '2024-01-08', '2024-03-25', '2024-03-28', '2024-03-29', '2024-05-01', '2024-05-13', '2024-06-03', '2024-06-10', '2024-07-01', '2024-07-20', '2024-08-07', '2024-08-19', '2024-10-14', '2024-11-04', '2024-11-11', '2024-12-08', '2024-12-25',
+    '2025-01-01', '2025-01-06', '2025-03-24', '2025-04-17', '2025-04-18', '2025-05-01', '2025-06-02', '2025-06-23', '2025-06-30', '2025-07-20', '2025-08-07', '2025-08-18', '2025-10-13', '2025-11-03', '2025-11-17', '2025-12-08', '2025-12-25',
+    '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03', '2026-05-01', '2026-05-18', '2026-06-08', '2026-06-15', '2026-06-29', '2026-07-20', '2026-08-07', '2026-08-17', '2026-10-12', '2026-11-02', '2026-11-16', '2026-12-08', '2026-12-25'
+  ];
 
   private apiUrl = 'http://localhost:8080/api/v1';
 
@@ -124,10 +150,13 @@ resolverPatientId() {
     this.appointmentService.listarMedicos().subscribe({
       next: (data) => {
         this.medicos = data || [];
+        const permitidas = ['Consulta General', 'Terapia Neural', 'Quiropraxia', 'Fisioterapia'];
         const raw = this.medicos
           .map((m: any) => m.specialty)
           .filter((s: any) => s && s.trim() !== '');
-        this.especialidades = [...new Set<string>(raw)].sort();
+        this.especialidades = [...new Set<string>(raw)]
+          .filter(s => permitidas.includes(s))
+          .sort();
       },
       error: () => this.error = 'Error al cargar médicos'
     });
@@ -138,17 +167,77 @@ resolverPatientId() {
     this.doctorId          = 0;
     this.franjas           = [];
     this.franjaSeleccionada = null;
-    this.fecha             = '';
+    this.fecha             = null;
+    this.fechaStr          = '';
     this.error             = '';
+    this.doctorWorkingDays = [];
 
     if (this.medicosFiltrados.length === 1) {
       this.doctorId = this.medicosFiltrados[0].id;
-      if (this.fecha) {
-        this.buscarFranjas();
-      }
+      this.cargarHorarioMedico();
       this.cdr.detectChanges();
     }
   }
+
+  onDoctorChange() {
+    this.franjas = [];
+    this.franjaSeleccionada = null;
+    this.fecha = null;
+    this.fechaStr = '';
+    this.error = '';
+    if (this.doctorId && this.doctorId > 0) {
+      this.cargarHorarioMedico();
+    } else {
+      this.doctorWorkingDays = [];
+    }
+  }
+
+  cargarHorarioMedico() {
+    this.appointmentService.obtenerHorario(this.doctorId).subscribe({
+      next: (horario) => {
+        this.doctorWorkingDays = horario.workingDays || [];
+      },
+      error: () => this.doctorWorkingDays = []
+    });
+  }
+
+  // Convertir fecha a string YYYY-MM-DD
+  formatDateStr(d: Date): string {
+    const year = d.getFullYear();
+    const month = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
+  }
+
+  // Filtro para deshabilitar fechas en el Datepicker
+  dateFilter = (d: Date | null): boolean => {
+    if (!d) return false;
+    
+    // 1. Bloquear sábados (6) y domingos (0)
+    const day = d.getDay();
+    if (day === 0 || day === 6) return false;
+
+    // 2. Bloquear festivos
+    const dateString = this.formatDateStr(d);
+    if (this.festivosColombiaStr.includes(dateString)) return false;
+
+    // 3. Bloquear días que el médico no trabaja
+    if (this.doctorWorkingDays.length > 0) {
+      const daysMap = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const dayName = daysMap[day];
+      if (!this.doctorWorkingDays.includes(dayName)) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Clase CSS personalizada para los días del calendario
+  dateClass = (d: Date): string => {
+    const dateString = this.formatDateStr(d);
+    return this.festivosColombiaStr.includes(dateString) ? 'holiday-date' : '';
+  };
 
   cargarMisCitas() {
     if (!this.patientId) {
@@ -164,6 +253,8 @@ resolverPatientId() {
     this.http.get<any[]>(`${this.apiUrl}/appointments`, { headers: this.headers(), params }).subscribe({
       next: (data) => {
         this.misCitas = data || [];
+        this.tieneCitaPendiente = this.misCitas.some(c => c.status === 'SCHEDULED');
+        this.tieneConsultaGeneralCompletada = this.misCitas.some(c => c.status === 'COMPLETED' && c.specialty === 'Consulta General');
         this.cargandoCitas = false;
         this.cdr.detectChanges();
       },
@@ -184,16 +275,21 @@ resolverPatientId() {
       return;
     }
 
+    this.fechaStr = this.formatDateStr(this.fecha);
+
     this.franjas = [];
     this.franjaSeleccionada = null;
     this.error = '';
+    this.cargandoFranjas = true;
 
-    this.appointmentService.obtenerFranjas(this.doctorId, this.fecha).subscribe({
+    this.appointmentService.obtenerFranjas(this.doctorId, this.fechaStr).subscribe({
       next: (data) => {
         this.franjas = (data || []).filter((f: any) => f.available);
+        this.cargandoFranjas = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
+        this.cargandoFranjas = false;
         this.error = err.status === 404
           ? 'El médico aún no tiene horario configurado.'
           : 'Error al cargar las franjas horarias.';
@@ -219,7 +315,7 @@ resolverPatientId() {
       return;
     }
 
-    if (!this.doctorId || !this.fecha) {
+    if (!this.doctorId || !this.fechaStr) {
       this.error = 'Seleccione médico y fecha.';
       return;
     }
@@ -235,7 +331,7 @@ resolverPatientId() {
     const datos = {
       doctorId: this.doctorId,
       patientId: this.patientId,
-      date: this.fecha,
+      date: this.fechaStr,
       startTime: this.franjaSeleccionada.startTime,
       notes: ''
     };
@@ -314,20 +410,41 @@ resolverPatientId() {
   etiquetaEstado(status: string): string {
     const map: any = {
       SCHEDULED: 'Programada',
-      COMPLETED: 'Completada',
-      CANCELLED: 'Cancelada'
+      COMPLETED: 'Atendida',
+      CANCELLED: 'Cancelada',
+      NO_SHOW: 'No asistida'
     };
     return map[status] || status;
   }
 
+  colorEstado(status: string): string {
+    const map: any = {
+      SCHEDULED: 'bg-primary',
+      COMPLETED: 'bg-success',
+      CANCELLED: 'bg-danger',
+      NO_SHOW: 'bg-warning'
+    };
+    return map[status] || 'bg-secondary';
+  }
+
   limpiarFormulario() {
     this.doctorId = 0;
-    this.fecha = '';
+    this.fecha = null;
+    this.fechaStr = '';
     this.franjas = [];
     this.franjaSeleccionada = null;
+    this.cargandoFranjas = false;
     this.error = '';
     this.citaCreada = false;
     this.especialidadSeleccionada = '';
     this.medicosFiltrados = [];
+    this.doctorWorkingDays = [];
+  }
+
+  get especialidadesPermitidas() {
+    if (!this.tieneConsultaGeneralCompletada) {
+      return this.especialidades.filter(e => e === 'Consulta General');
+    }
+    return this.especialidades;
   }
 }

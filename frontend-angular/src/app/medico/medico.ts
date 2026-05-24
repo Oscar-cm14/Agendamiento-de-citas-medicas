@@ -544,13 +544,40 @@ export class Medico implements OnInit {
 
   // ── Helpers ────────────────────────────────────────────────
   etiquetaEstado(status: string): string {
-    return { SCHEDULED: 'Programada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' }
+    return { SCHEDULED: 'Programada', COMPLETED: 'Atendida', CANCELLED: 'Cancelada', NO_SHOW: 'No asistida' }
       [status] || status;
   }
 
   colorEstado(status: string): string {
-    return { SCHEDULED: 'bg-success', COMPLETED: 'bg-secondary', CANCELLED: 'bg-danger' }
+    return { SCHEDULED: 'bg-primary', COMPLETED: 'bg-success', CANCELLED: 'bg-danger', NO_SHOW: 'bg-warning' }
       [status] || 'bg-secondary';
+  }
+
+  cambiarEstado(cita: any, nuevoEstado: string) {
+    if (cita.status === nuevoEstado) return;
+
+    if (nuevoEstado === 'CANCELLED') {
+      // Revert select visually until modal is confirmed
+      setTimeout(() => { cita.status = 'SCHEDULED'; this.cdr.detectChanges(); }, 0);
+      this.abrirCancelacion(cita);
+      return;
+    }
+
+    this.http.patch(
+      `${this.apiUrl}/appointments/${cita.id}/status`,
+      { status: nuevoEstado },
+      { headers: this.headers() }
+    ).subscribe({
+      next: () => {
+        cita.status = nuevoEstado;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        alert(err.error?.message || 'Error al actualizar estado');
+        this.cargarCitasHoy();
+        if (this.fechaBuscar) this.buscarCitas();
+      }
+    });
   }
 
   cerrarSesion() {

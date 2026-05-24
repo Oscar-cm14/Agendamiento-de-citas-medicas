@@ -72,6 +72,35 @@ public class AppointmentServiceImpl implements AppointmentService {
                 request.doctorId(), request.date(), request.startTime());
         if (ocupado) throw new RuntimeException("Ya existe una cita en esa franja horaria");
 
+        // ── REGLAS DE NEGOCIO: VALIDACIÓN DE HISTORIAL DEL PACIENTE ──
+        List<Appointment> patientAppts = appointmentRepository.findByPatientId(request.patientId());
+        boolean hasScheduled = false;
+        boolean hasCompletedGeneral = false;
+
+        for (Appointment app : patientAppts) {
+            if (app.getStatus() == AppointmentStatus.SCHEDULED) {
+                hasScheduled = true;
+            }
+            if (app.getStatus() == AppointmentStatus.COMPLETED) {
+                Doctor doc = doctorRepository.findById(app.getDoctorId()).orElse(null);
+                if (doc != null && doc.getSpecialty() != null && doc.getSpecialty().equalsIgnoreCase("Consulta General")) {
+                    hasCompletedGeneral = true;
+                }
+            }
+        }
+
+        // Regla 1: No puede tener citas agendadas/pendientes simultáneas
+        if (hasScheduled) {
+            throw new RuntimeException("No puede agendar nuevas citas mientras tenga una cita pendiente o agendada");
+        }
+
+        // Regla 3: Si no es Consulta General, debe tener una completada antes
+        Doctor targetDoctor = doctorRepository.findById(request.doctorId()).get();
+        if (targetDoctor.getSpecialty() != null && !targetDoctor.getSpecialty().equalsIgnoreCase("Consulta General") && !hasCompletedGeneral) {
+            throw new RuntimeException("Debe tener una Consulta General completada antes de agendar esta especialidad");
+        }
+        // ─────────────────────────────────────────────────────────────
+
         int intervalMinutes = doctorScheduleRepository.findByDoctorId(request.doctorId())
                 .map(DoctorSchedule::getIntervalMinutes)
                 .filter(i -> i != null && i > 0).orElse(30);
@@ -267,5 +296,15 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment saved = appointmentRepository.save(appointment);
 
         return toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public AppointmentResponse updateAppointmentStatus(Long appointmentId, com.clinica.shared.dto.UpdateAppointmentStatusRequest request) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
+        
+        appointment.setStatus(request.status());
+        return toResponse(appointmentRepository.save(appointment));
     }
 }

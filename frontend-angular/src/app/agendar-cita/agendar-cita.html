@@ -65,8 +65,13 @@
         {{ error }}
       </div>
 
-      <!-- Formulario (se oculta cuando la cita fue creada) -->
-      <div *ngIf="!citaCreada">
+      <!-- Formulario (se oculta cuando la cita fue creada o hay cita pendiente) -->
+      <div *ngIf="tieneCitaPendiente" class="alert alert-warning">
+        <strong>Atención:</strong> Tienes una cita actualmente pendiente o programada. 
+        No puedes agendar nuevas citas hasta que la actual sea completada o cancelada.
+      </div>
+
+      <div *ngIf="!citaCreada && !tieneCitaPendiente">
 
         <!-- ── PASO 1: ESPECIALIDAD ── -->
         <div class="mb-3">
@@ -85,8 +90,8 @@
             [disabled]="medicos.length === 0"
           >
             <option value="">Seleccione una especialidad...</option>
-            <!-- Se itera sobre el array ya filtrado y ordenado -->
-            <option *ngFor="let e of especialidades" [value]="e">
+            <!-- Se itera sobre el array filtrado y permitido -->
+            <option *ngFor="let e of especialidadesPermitidas" [value]="e">
               {{ e }}
             </option>
           </select>
@@ -113,7 +118,7 @@
           <select
             class="form-select"
             [(ngModel)]="doctorId"
-            (change)="buscarFranjas()"
+            (change)="onDoctorChange()"
             [class.d-none]="medicosFiltrados.length === 1"
           >
             <option value="0">Seleccione un médico...</option>
@@ -126,13 +131,17 @@
 
         <!-- ── PASO 3: FECHA (solo visible si ya hay médico) ── -->
         <div class="mb-3" *ngIf="especialidadSeleccionada && doctorId">
-          <label class="form-label fw-semibold">Fecha</label>
-          <input
-            type="date"
-            class="form-control"
-            [(ngModel)]="fecha"
-            (change)="buscarFranjas()"
-          />
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Fecha</mat-label>
+            <input matInput [matDatepicker]="picker" 
+                   [(ngModel)]="fecha" 
+                   (ngModelChange)="buscarFranjas()" 
+                   [matDatepickerFilter]="dateFilter"
+                   [min]="minDate"
+                   readonly>
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker [dateClass]="dateClass"></mat-datepicker>
+          </mat-form-field>
         </div>
 
 
@@ -152,8 +161,14 @@
           </div>
         </div>
 
+        <!-- Spinner mientras carga franjas -->
+        <div *ngIf="cargandoFranjas" class="text-muted small mb-3">
+          <span class="spinner-border spinner-border-sm me-1"></span>
+          Cargando horarios disponibles...
+        </div>
+
         <!-- Aviso cuando no hay franjas disponibles -->
-        <div *ngIf="doctorId && fecha && franjas.length === 0"
+        <div *ngIf="doctorId && fecha && franjas.length === 0 && !cargandoFranjas"
              class="alert alert-warning mb-3">
           No hay franjas disponibles para esta fecha y médico.
         </div>
@@ -238,9 +253,13 @@
               <td>{{ cita.startTime }} – {{ cita.endTime }}</td>
               <td>
                 <span class="badge"
-                  [class.bg-success]="cita.status === 'SCHEDULED'"
-                  [class.bg-secondary]="cita.status === 'COMPLETED'"
-                  [class.bg-danger]="cita.status === 'CANCELLED'">
+                  [ngClass]="{
+                    'bg-primary':   cita.status === 'SCHEDULED',
+                    'bg-success':   cita.status === 'COMPLETED',
+                    'bg-danger':    cita.status === 'CANCELLED',
+                    'bg-warning':   cita.status === 'NO_SHOW',
+                    'bg-secondary': cita.status !== 'SCHEDULED' && cita.status !== 'COMPLETED' && cita.status !== 'CANCELLED' && cita.status !== 'NO_SHOW'
+                  }">
                   {{ etiquetaEstado(cita.status) }}
                 </span>
               </td>
@@ -277,7 +296,7 @@
       <div class="modal-content">
 
         <div class="modal-header">
-          <h5 class="modal-title">❌ Cancelar Cita</h5>
+          <h5 class="modal-title">Cancelar Cita</h5>
           <button class="btn-close" (click)="cerrarCancelacion()"></button>
         </div>
 

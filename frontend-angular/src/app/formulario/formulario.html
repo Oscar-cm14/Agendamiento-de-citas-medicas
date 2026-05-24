@@ -23,7 +23,7 @@
 
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label class="form-label">Nombres *</label>
+              <label class="form-label">Nombres <span class="text-danger">*</span></label>
               <input type="text" class="form-control"
                      [(ngModel)]="nombres"
                      (blur)="validarNombres(nombres)"
@@ -32,7 +32,7 @@
             </div>
 
             <div class="col-md-6 mb-3">
-              <label class="form-label">Apellidos *</label>
+              <label class="form-label">Apellidos <span class="text-danger">*</span></label>
               <input type="text" class="form-control"
                      [(ngModel)]="apellidos"
                      (blur)="validarApellidos(apellidos)"
@@ -42,7 +42,7 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Número de Identificación</label>
+            <label class="form-label">Número de Identificación <span class="text-danger">*</span></label>
             <input type="text" class="form-control"
                    [(ngModel)]="identificacion"
                    (blur)="validarIdentificacion(identificacion)"
@@ -51,20 +51,36 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Celular</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="celular"
-                   placeholder="Número de celular">
+            <label class="form-label">Celular <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <select class="form-select" style="max-width: 120px;" [(ngModel)]="codigoPais">
+                <option value="+57">+57 (CO)</option>
+                <option value="+593">+593 (EC)</option>
+                <option value="+52">+52 (MX)</option>
+                <option value="+51">+51 (PE)</option>
+                <option value="+54">+54 (AR)</option>
+                <option value="+56">+56 (CL)</option>
+              </select>
+              <input type="text" class="form-control"
+                     [(ngModel)]="celular"
+                     (blur)="validarCelular(celular)"
+                     [class.is-invalid]="celularError"
+                     placeholder="Número de celular">
+              <div class="invalid-feedback" [class.d-block]="celularError">{{ celularError }}</div>
+            </div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Género</label>
-            <select class="form-select" [(ngModel)]="genero">
+            <label class="form-label">Género <span class="text-danger">*</span></label>
+            <select class="form-select" [(ngModel)]="genero"
+                    (blur)="validarGenero(genero)"
+                    [class.is-invalid]="generoError">
               <option value="">Seleccione...</option>
               <option value="Hombre">Hombre</option>
               <option value="Mujer">Mujer</option>
               <option value="Otro">Otro</option>
             </select>
+            <div class="invalid-feedback">{{ generoError }}</div>
           </div>
 
           <div class="mb-3">
@@ -77,12 +93,31 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Contraseña</label>
-            <input type="password" class="form-control"
-                   [(ngModel)]="contrasena"
-                   (blur)="validarContrasena(contrasena)"
-                   [class.is-invalid]="contrasenaError">
-            <div class="invalid-feedback">{{ contrasenaError }}</div>
+            <label class="form-label">Contraseña <span class="text-danger">*</span> <small class="text-muted" style="font-size: 0.85em;">(mínimo 6 letras o números)</small></label>
+            <div class="input-group">
+              <input [type]="mostrarContrasena ? 'text' : 'password'" class="form-control"
+                     [(ngModel)]="contrasena"
+                     (blur)="validarContrasena(contrasena)"
+                     [class.is-invalid]="contrasenaError">
+              <button class="btn btn-outline-secondary" type="button" (click)="mostrarContrasena = !mostrarContrasena">
+                {{ mostrarContrasena ? 'Ocultar' : 'Ver' }}
+              </button>
+              <div class="invalid-feedback" [class.d-block]="contrasenaError">{{ contrasenaError }}</div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input [type]="mostrarConfirmarContrasena ? 'text' : 'password'" class="form-control"
+                     [(ngModel)]="confirmarContrasena"
+                     (blur)="validarConfirmarContrasena()"
+                     [class.is-invalid]="confirmarContrasenaError">
+              <button class="btn btn-outline-secondary" type="button" (click)="mostrarConfirmarContrasena = !mostrarConfirmarContrasena">
+                {{ mostrarConfirmarContrasena ? 'Ocultar' : 'Ver' }}
+              </button>
+              <div class="invalid-feedback" [class.d-block]="confirmarContrasenaError">{{ confirmarContrasenaError }}</div>
+            </div>
           </div>
 
           <div class="d-grid mb-3">
