@@ -53,10 +53,10 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     }
 
     /**
-     * RF4: Obtiene el horario configurado de un médico.
+     * RF4: Obtiene el horario configurado de un médico
      */
     @Override
-    public DoctorScheduleResponse getScheduleByDoctor(Long doctorId) {
+    public DoctorScheduleResponse getScheduleByDoctorId(Long doctorId) {
 
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new RuntimeException("Médico no encontrado"));

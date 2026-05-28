@@ -15,5 +15,5 @@ public interface DoctorScheduleService {
     DoctorScheduleResponse saveSchedule(DoctorScheduleRequest request);
 
     // RF4: Obtener horario de un médico
-    DoctorScheduleResponse getScheduleByDoctor(Long doctorId);
+    DoctorScheduleResponse getScheduleByDoctorId(Long doctorId);
 }

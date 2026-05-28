@@ -2,131 +2,131 @@
 
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>🏥 Panel Administrador</h2>
-    <button class="btn btn-outline-danger" (click)="cerrarSesion()">
-      Cerrar Sesión
-    </button>
+    <div>
+      <h2 class="mb-0">🏥 Panel Administrador</h2>
+    </div>
+    <div class="d-flex gap-2">
+      <a routerLink="/ayuda" class="btn btn-outline-info btn-sm">
+        📖 Ayuda
+      </a>
+      <button class="btn btn-outline-danger" (click)="cerrarSesion()">
+        Cerrar Sesión
+      </button>
+    </div>
   </div>
 
   <!-- Pestañas -->
-  <ul class="nav nav-tabs mb-4">
+  <ul class="nav nav-tabs mb-4 flex-wrap">
     <li class="nav-item">
       <button class="nav-link"
               [class.active]="pestanaActiva === 'registrar-medico'"
-              (click)="pestanaActiva = 'registrar-medico'">
+              (click)="cambiarPestana('registrar-medico')">
         👨‍⚕️ Registrar Médico
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link"
               [class.active]="pestanaActiva === 'registrar-agendador'"
-              (click)="pestanaActiva = 'registrar-agendador'">
+              (click)="cambiarPestana('registrar-agendador')">
         📋 Registrar Agendador
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link"
+              [class.active]="pestanaActiva === 'editar-medico'"
+              (click)="cambiarPestana('editar-medico')">
+        ✏️ Editar Médico
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link"
+              [class.active]="pestanaActiva === 'editar-agendador'"
+              (click)="cambiarPestana('editar-agendador')">
+        📝 Editar Agendador
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link"
+              [class.active]="pestanaActiva === 'roles'"
+              (click)="cambiarPestana('roles')">
+        🔑 Gestionar Roles
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link"
               [class.active]="pestanaActiva === 'configuracion'"
-              (click)="pestanaActiva = 'configuracion'">
+              (click)="cambiarPestana('configuracion')">
         ⚙️ Configuración
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link"
               [class.active]="pestanaActiva === 'horarios'"
-              (click)="pestanaActiva = 'horarios'">
+              (click)="cambiarPestana('horarios')">
         📅 Horarios Médicos
       </button>
     </li>
   </ul>
 
-  <!-- PESTAÑA 1: Registrar médico -->
+  <!-- ═══════════════════════════════════════════════════════════
+       PESTAÑA 1: Registrar médico
+  ═══════════════════════════════════════════════════════════════ -->
   <div *ngIf="pestanaActiva === 'registrar-medico'">
     <div class="card shadow p-4" style="max-width: 600px;">
       <h4 class="mb-4">Registrar Nuevo Médico</h4>
 
       <div *ngIf="medicoRegistrado" class="alert alert-success">
         Médico registrado exitosamente.
-        <button class="btn btn-link p-0 ms-2"
-                (click)="medicoRegistrado = false">
+        <button class="btn btn-link p-0 ms-2" (click)="medicoRegistrado = false">
           Registrar otro
         </button>
       </div>
-
-      <div *ngIf="errorMedico" class="alert alert-danger">
-        {{ errorMedico }}
-      </div>
+      <div *ngIf="errorMedico" class="alert alert-danger">{{ errorMedico }}</div>
 
       <div *ngIf="!medicoRegistrado">
         <div class="row g-3">
-
           <div class="col-md-6">
             <label class="form-label">Identificación *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="medico.identification"
-                   placeholder="Número de documento">
+            <input type="text" class="form-control" [(ngModel)]="medico.identification" placeholder="Número de documento">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Nombre *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="medico.firstName"
-                   placeholder="Nombre">
+            <input type="text" class="form-control" [(ngModel)]="medico.firstName" placeholder="Nombre">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Apellido *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="medico.lastName"
-                   placeholder="Apellido">
+            <input type="text" class="form-control" [(ngModel)]="medico.lastName" placeholder="Apellido">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Teléfono *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="medico.phone"
-                   placeholder="Teléfono">
+            <input type="text" class="form-control" [(ngModel)]="medico.phone" placeholder="Teléfono">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Correo *</label>
-            <input type="email" class="form-control"
-                   [(ngModel)]="medico.email"
-                   placeholder="Correo electrónico">
+            <input type="email" class="form-control" [(ngModel)]="medico.email" placeholder="Correo electrónico">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Especialidad *</label>
-<select class="form-select" [(ngModel)]="medico.specialty">
-  <option value="">Seleccione...</option>
-  <option value="Consulta General">Consulta General</option>
-  <option value="Terapia Neural">Terapia Neural</option>
-  <option value="Quiropraxia">Quiropraxia</option>
-  <option value="Fisioterapia">Fisioterapia</option>
-</select>
+            <select class="form-select" [(ngModel)]="medico.specialty">
+              <option value="">Seleccione...</option>
+              <option value="Consulta General">Consulta General</option>
+              <option value="Terapia Neural">Terapia Neural</option>
+              <option value="Quiropraxia">Quiropraxia</option>
+              <option value="Fisioterapia">Fisioterapia</option>
+            </select>
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Número de licencia *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="medico.licenseNumber"
-                   placeholder="Licencia médica">
+            <input type="text" class="form-control" [(ngModel)]="medico.licenseNumber" placeholder="Licencia médica">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Usuario *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="medico.username"
-                   placeholder="Nombre de usuario">
+            <input type="text" class="form-control" [(ngModel)]="medico.username" placeholder="Nombre de usuario">
           </div>
-
           <div class="col-12">
             <label class="form-label">Contraseña *</label>
-            <input type="password" class="form-control"
-                   [(ngModel)]="medico.password"
-                   placeholder="Contraseña">
+            <input type="password" class="form-control" [(ngModel)]="medico.password" placeholder="Contraseña">
           </div>
-
           <div class="col-12">
             <button class="btn btn-outline-sesion w-100"
                     (click)="registrarMedico()"
@@ -134,81 +134,56 @@
               {{ cargandoMedico ? 'Registrando...' : 'Registrar Médico' }}
             </button>
           </div>
-
         </div>
       </div>
     </div>
   </div>
 
-  <!-- PESTAÑA 2: Registrar agendador -->
+  <!-- ═══════════════════════════════════════════════════════════
+       PESTAÑA 2: Registrar agendador
+  ═══════════════════════════════════════════════════════════════ -->
   <div *ngIf="pestanaActiva === 'registrar-agendador'">
     <div class="card shadow p-4" style="max-width: 600px;">
       <h4 class="mb-4">Registrar Nuevo Agendador</h4>
 
       <div *ngIf="agendadorRegistrado" class="alert alert-success">
-         Agendador registrado exitosamente.
-        <button class="btn btn-link p-0 ms-2"
-                (click)="agendadorRegistrado = false">
+        Agendador registrado exitosamente.
+        <button class="btn btn-link p-0 ms-2" (click)="agendadorRegistrado = false">
           Registrar otro
         </button>
       </div>
-
-      <div *ngIf="errorAgendador" class="alert alert-danger">
-        {{ errorAgendador }}
-      </div>
+      <div *ngIf="errorAgendador" class="alert alert-danger">{{ errorAgendador }}</div>
 
       <div *ngIf="!agendadorRegistrado">
         <div class="row g-3">
-
           <div class="col-md-6">
             <label class="form-label">Identificación *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="agendador.identification"
-                   placeholder="Número de documento">
+            <input type="text" class="form-control" [(ngModel)]="agendador.identification" placeholder="Número de documento">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Nombre *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="agendador.firstName"
-                   placeholder="Nombre">
+            <input type="text" class="form-control" [(ngModel)]="agendador.firstName" placeholder="Nombre">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Apellido *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="agendador.lastName"
-                   placeholder="Apellido">
+            <input type="text" class="form-control" [(ngModel)]="agendador.lastName" placeholder="Apellido">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Teléfono *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="agendador.phone"
-                   placeholder="Teléfono">
+            <input type="text" class="form-control" [(ngModel)]="agendador.phone" placeholder="Teléfono">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Correo *</label>
-            <input type="email" class="form-control"
-                   [(ngModel)]="agendador.email"
-                   placeholder="Correo electrónico">
+            <input type="email" class="form-control" [(ngModel)]="agendador.email" placeholder="Correo electrónico">
           </div>
-
           <div class="col-md-6">
             <label class="form-label">Usuario *</label>
-            <input type="text" class="form-control"
-                   [(ngModel)]="agendador.username"
-                   placeholder="Nombre de usuario">
+            <input type="text" class="form-control" [(ngModel)]="agendador.username" placeholder="Nombre de usuario">
           </div>
-
           <div class="col-12">
             <label class="form-label">Contraseña *</label>
-            <input type="password" class="form-control"
-                   [(ngModel)]="agendador.password"
-                   placeholder="Contraseña">
+            <input type="password" class="form-control" [(ngModel)]="agendador.password" placeholder="Contraseña">
           </div>
-
           <div class="col-12">
             <button class="btn btn-outline-sesion w-100"
                     (click)="registrarAgendador()"
@@ -216,57 +191,365 @@
               {{ cargandoAgendador ? 'Registrando...' : 'Registrar Agendador' }}
             </button>
           </div>
-
         </div>
       </div>
     </div>
   </div>
 
-  <!-- PESTAÑA 3: Configuración -->
+  <!-- ═══════════════════════════════════════════════════════════
+       PESTAÑA 3: Editar médico
+  ═══════════════════════════════════════════════════════════════ -->
+  <div *ngIf="pestanaActiva === 'editar-medico'">
+    <div class="row g-4">
+
+      <!-- Lista de médicos -->
+      <div class="col-12 col-md-5">
+        <div class="card shadow p-3">
+          <h5 class="mb-3">👨‍⚕️ Médicos registrados</h5>
+
+          <div *ngIf="listaMedicos.length === 0" class="text-muted text-center py-3">
+            No hay médicos registrados.
+          </div>
+
+          <div class="list-group list-group-flush">
+            <button *ngFor="let doc of listaMedicos"
+                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                    [class.active]="medicoSeleccionado?.id === doc.id"
+                    (click)="seleccionarMedicoParaEditar(doc)">
+              <div>
+                <div class="fw-semibold">{{ doc.fullName || (doc.firstName + ' ' + doc.lastName) }}</div>
+                <small class="text-muted">{{ doc.specialty }}</small>
+              </div>
+              <span class="badge bg-primary rounded-pill">Editar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario de edición -->
+      <div class="col-12 col-md-7" *ngIf="medicoEditando">
+        <div class="card shadow p-4">
+          <h5 class="mb-3">✏️ Editar información del médico</h5>
+
+          <div *ngIf="medicoActualizado" class="alert alert-success">
+            ✅ Médico actualizado exitosamente.
+          </div>
+          <div *ngIf="errorEditarMedico" class="alert alert-danger">
+            {{ errorEditarMedico }}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Identificación</label>
+              <input type="text" class="form-control" [(ngModel)]="medicoEditando.identification">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nombre</label>
+              <input type="text" class="form-control" [(ngModel)]="medicoEditando.firstName">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Apellido</label>
+              <input type="text" class="form-control" [(ngModel)]="medicoEditando.lastName">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Teléfono</label>
+              <input type="text" class="form-control" [(ngModel)]="medicoEditando.phone">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Correo</label>
+              <input type="email" class="form-control" [(ngModel)]="medicoEditando.email">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Especialidad</label>
+              <select class="form-select" [(ngModel)]="medicoEditando.specialty">
+                <option value="">Seleccione...</option>
+                <option value="Consulta General">Consulta General</option>
+                <option value="Terapia Neural">Terapia Neural</option>
+                <option value="Quiropraxia">Quiropraxia</option>
+                <option value="Fisioterapia">Fisioterapia</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Número de licencia</label>
+              <input type="text" class="form-control" [(ngModel)]="medicoEditando.licenseNumber">
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════
+                 HABILIDADES ADICIONALES (campo nuevo)
+                 Modelo: medicoEditando.skills
+            ════════════════════════════════════════════════════════ -->
+            <div class="col-12">
+              <label class="form-label">
+                Habilidades adicionales
+                <small class="text-muted ms-1">(separadas por coma)</small>
+              </label>
+              <input type="text" class="form-control"
+                     [(ngModel)]="medicoEditando.skills"
+                     placeholder="Ej: Acupuntura, Electroterapia, Rehabilitación deportiva">
+              <small class="text-muted">
+                Estas habilidades serán visibles para los pacientes al seleccionar médico.
+              </small>
+              <!-- Vista previa de badges en tiempo real -->
+              <div class="mt-2 d-flex flex-wrap gap-1"
+                   *ngIf="medicoEditando.skills && medicoEditando.skills.trim()">
+                <span *ngFor="let h of medicoEditando.skills.split(',')"
+                      class="badge bg-info text-dark">
+                  {{ h.trim() }}
+                </span>
+              </div>
+            </div>
+            <!-- ══════════════════════════════════════════════════ -->
+
+            <div class="col-6">
+              <button class="btn btn-outline-sesion w-100"
+                      (click)="guardarEdicionMedico()"
+                      [disabled]="cargandoEditarMedico">
+                {{ cargandoEditarMedico ? 'Guardando...' : '💾 Guardar cambios' }}
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-secondary w-100" (click)="cancelarEdicionMedico()">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placeholder cuando no hay selección -->
+      <div class="col-12 col-md-7" *ngIf="!medicoEditando">
+        <div class="card shadow p-4 text-center text-muted">
+          <div style="font-size: 3rem;">👨‍⚕️</div>
+          <p class="mt-2">Selecciona un médico de la lista para editar su información.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PESTAÑA 4: Editar agendador
+  ═══════════════════════════════════════════════════════════════ -->
+  <div *ngIf="pestanaActiva === 'editar-agendador'">
+    <div class="row g-4">
+
+      <!-- Lista de agendadores -->
+      <div class="col-12 col-md-5">
+        <div class="card shadow p-3">
+          <h5 class="mb-3">📋 Agendadores registrados</h5>
+
+          <div *ngIf="listaAgendadores.length === 0" class="text-muted text-center py-3">
+            No hay agendadores registrados.
+          </div>
+
+          <div class="list-group list-group-flush">
+            <button *ngFor="let ag of listaAgendadores"
+                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                    [class.active]="agendadorSeleccionado?.id === ag.id"
+                    (click)="seleccionarAgendadorParaEditar(ag)">
+              <div>
+                <div class="fw-semibold">{{ ag.fullName || (ag.firstName + ' ' + ag.lastName) }}</div>
+                <small class="text-muted">{{ ag.email }}</small>
+              </div>
+              <span class="badge bg-success rounded-pill">Editar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario de edición -->
+      <div class="col-12 col-md-7" *ngIf="agendadorEditando">
+        <div class="card shadow p-4">
+          <h5 class="mb-3">📝 Editar información del agendador</h5>
+
+          <div *ngIf="agendadorActualizado" class="alert alert-success">
+            ✅ Agendador actualizado exitosamente.
+          </div>
+          <div *ngIf="errorEditarAgendador" class="alert alert-danger">
+            {{ errorEditarAgendador }}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Identificación</label>
+              <input type="text" class="form-control" [(ngModel)]="agendadorEditando.identification">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nombre</label>
+              <input type="text" class="form-control" [(ngModel)]="agendadorEditando.firstName">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Apellido</label>
+              <input type="text" class="form-control" [(ngModel)]="agendadorEditando.lastName">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Teléfono</label>
+              <input type="text" class="form-control" [(ngModel)]="agendadorEditando.phone">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Correo</label>
+              <input type="email" class="form-control" [(ngModel)]="agendadorEditando.email">
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-sesion w-100"
+                      (click)="guardarEdicionAgendador()"
+                      [disabled]="cargandoEditarAgendador">
+                {{ cargandoEditarAgendador ? 'Guardando...' : '💾 Guardar cambios' }}
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-secondary w-100" (click)="cancelarEdicionAgendador()">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placeholder -->
+      <div class="col-12 col-md-7" *ngIf="!agendadorEditando">
+        <div class="card shadow p-4 text-center text-muted">
+          <div style="font-size: 3rem;">📋</div>
+          <p class="mt-2">Selecciona un agendador de la lista para editar su información.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PESTAÑA 5: Gestionar roles
+  ═══════════════════════════════════════════════════════════════ -->
+  <div *ngIf="pestanaActiva === 'roles'">
+    <div class="row g-4">
+
+      <!-- Lista de usuarios -->
+      <div class="col-12 col-md-5">
+        <div class="card shadow p-3">
+          <h5 class="mb-3">👥 Usuarios del sistema</h5>
+
+          <div *ngIf="cargandoUsuarios" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span class="ms-2 text-muted">Cargando usuarios...</span>
+          </div>
+
+          <div *ngIf="!cargandoUsuarios && listaUsuarios.length === 0" class="text-muted text-center py-3">
+            No se encontraron usuarios.
+          </div>
+
+          <div class="list-group list-group-flush">
+            <button *ngFor="let user of listaUsuarios"
+                    class="list-group-item list-group-item-action"
+                    [class.active]="usuarioSeleccionado?.id === user.id"
+                    (click)="seleccionarUsuarioParaRoles(user)">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold">{{ getNombreUsuario(user) }}</div>
+                  <small class="text-muted">{{ user.username || user.email }}</small>
+                </div>
+                <div class="d-flex flex-wrap gap-1 ms-2">
+                  <span *ngFor="let r of (user.roles || [])"
+                        class="badge {{ getRolBadgeClass(r) }}" style="font-size:0.65rem;">
+                    {{ r }}
+                  </span>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de asignación de roles -->
+      <div class="col-12 col-md-7" *ngIf="usuarioSeleccionado">
+        <div class="card shadow p-4">
+          <h5 class="mb-1">🔑 Roles de <strong>{{ getNombreUsuario(usuarioSeleccionado) }}</strong></h5>
+          <p class="text-muted mb-3" style="font-size:0.85rem;">
+            Marca los roles que deseas asignar. Los cambios reemplazarán los roles actuales del usuario en Keycloak.
+          </p>
+
+          <div *ngIf="rolesActualizados" class="alert alert-success">
+            ✅ Roles actualizados exitosamente.
+          </div>
+          <div *ngIf="errorRoles" class="alert alert-danger">{{ errorRoles }}</div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-6" *ngFor="let rol of ROLES_DISPONIBLES">
+              <div class="form-check form-check-inline border rounded p-3 w-100"
+                   [style.border-color]="tieneRol(rol) ? 'var(--bs-primary)' : ''"
+                   [style.background]="tieneRol(rol) ? 'rgba(13,110,253,.06)' : ''">
+                <input class="form-check-input" type="checkbox"
+                       [id]="'rol_' + rol"
+                       [checked]="tieneRol(rol)"
+                       (change)="toggleRol($event, rol)">
+                <label class="form-check-label fw-semibold" [for]="'rol_' + rol">
+                  <span class="badge {{ getRolBadgeClass(rol) }} me-1">{{ rol }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-sesion flex-fill"
+                    (click)="guardarRoles()"
+                    [disabled]="cargandoRoles || rolesUsuario.length === 0">
+              {{ cargandoRoles ? 'Guardando...' : '💾 Guardar roles' }}
+            </button>
+            <button class="btn btn-outline-secondary flex-fill" (click)="cancelarEdicionRoles()">
+              Cancelar
+            </button>
+          </div>
+
+          <small class="text-muted mt-2 d-block">
+            ⚠️ Un usuario debe tener al menos un rol asignado.
+          </small>
+        </div>
+      </div>
+
+      <!-- Placeholder -->
+      <div class="col-12 col-md-7" *ngIf="!usuarioSeleccionado">
+        <div class="card shadow p-4 text-center text-muted">
+          <div style="font-size: 3rem;">🔑</div>
+          <p class="mt-2">Selecciona un usuario de la lista para ver y modificar sus roles.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PESTAÑA 6: Configuración
+  ═══════════════════════════════════════════════════════════════ -->
   <div *ngIf="pestanaActiva === 'configuracion'">
     <div class="card shadow p-4" style="max-width: 500px;">
       <h4 class="mb-4">Configuración del Sistema</h4>
 
       <div *ngIf="configGuardada" class="alert alert-success">
-         Configuración guardada exitosamente.
+        Configuración guardada exitosamente.
       </div>
-
-      <div *ngIf="errorConfig" class="alert alert-danger">
-        {{ errorConfig }}
-      </div>
+      <div *ngIf="errorConfig" class="alert alert-danger">{{ errorConfig }}</div>
 
       <div class="mb-4">
-        <label class="form-label fw-bold">
-          Ventana de tiempo para citas (semanas)
-        </label>
+        <label class="form-label fw-bold">Ventana de tiempo para citas (semanas)</label>
         <input type="number" class="form-control"
-               [(ngModel)]="configuracion.windowWeeks"
-               min="1" max="52">
-        <small class="text-muted">
-          Cuántas semanas hacia adelante se pueden agendar citas.
-        </small>
+               [(ngModel)]="configuracion.windowWeeks" min="1" max="52">
+        <small class="text-muted">Cuántas semanas hacia adelante se pueden agendar citas.</small>
       </div>
 
-      <button class="btn btn-outline-sesion w-100"
-              (click)="guardarConfiguracion()">
-         Guardar Configuración
+      <button class="btn btn-outline-sesion w-100" (click)="guardarConfiguracion()">
+        💾 Guardar Configuración
       </button>
-
     </div>
   </div>
 
-  <!-- PESTAÑA 4: Horarios Médicos -->
+  <!-- ═══════════════════════════════════════════════════════════
+       PESTAÑA 7: Horarios Médicos
+  ═══════════════════════════════════════════════════════════════ -->
   <div *ngIf="pestanaActiva === 'horarios'">
     <div class="card shadow p-4" style="max-width: 600px;">
       <h4 class="mb-4">Configurar Horario Médico</h4>
 
-      <div *ngIf="horarioGuardado" class="alert alert-success">
-         Horario guardado exitosamente.
-      </div>
-
-      <div *ngIf="errorHorario" class="alert alert-danger">
-        {{ errorHorario }}
-      </div>
+      <div *ngIf="horarioGuardado" class="alert alert-success">✅ Horario guardado exitosamente.</div>
+      <div *ngIf="errorHorario" class="alert alert-danger">{{ errorHorario }}</div>
 
       <div class="mb-3">
         <label class="form-label fw-bold">Médico *</label>
@@ -287,9 +570,7 @@
                      [id]="'dia_'+dia.value"
                      [checked]="horarioMedico.workingDays.includes(dia.value)"
                      (change)="onDiaCheckboxChange($event, dia.value)">
-              <label class="form-check-label" [for]="'dia_'+dia.value">
-                {{ dia.label }}
-              </label>
+              <label class="form-check-label" [for]="'dia_'+dia.value">{{ dia.label }}</label>
             </div>
           </div>
         </div>
@@ -306,17 +587,16 @@
         </div>
 
         <div class="mb-4">
-          <label class="form-label fw-bold">Intervalo de tiempo entre citas (minutos) *</label>
+          <label class="form-label fw-bold">Intervalo entre citas (minutos) *</label>
           <input type="number" class="form-control" [(ngModel)]="horarioMedico.intervalMinutes" min="10">
         </div>
 
         <button class="btn btn-outline-sesion w-100"
                 (click)="guardarHorarioMedico()"
                 [disabled]="cargandoHorario || horarioMedico.workingDays.length === 0">
-          {{ cargandoHorario ? 'Guardando...' : 'Guardar Horario' }}
+          {{ cargandoHorario ? 'Guardando...' : '💾 Guardar Horario' }}
         </button>
       </div>
-
     </div>
   </div>
 

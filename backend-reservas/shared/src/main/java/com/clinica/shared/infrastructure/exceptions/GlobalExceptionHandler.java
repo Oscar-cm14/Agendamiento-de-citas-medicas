@@ -1,6 +1,7 @@
 package com.clinica.shared.infrastructure.exceptions;
 
 import com.clinica.shared.dto.ErrorResponse;
+import com.clinica.shared.domain.exceptions.BusinessRuleException;
 import com.clinica.shared.domain.exceptions.DuplicateResourceException;
 import com.clinica.shared.domain.exceptions.InvalidCredentialsException;
 import org.springframework.http.HttpStatus;
@@ -19,13 +20,6 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * Handles authentication failures via custom InvalidCredentialsException.
-     *
-     * @param ex      The thrown InvalidCredentialsException.
-     * @param request The web request context.
-     * @return Ordered error payload with 401 Unauthorized status.
-     */
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex, WebRequest request) {
         ErrorResponse errorResponse = new ErrorResponse(
@@ -37,13 +31,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
-    /**
-     * Handles custom business logic exceptions related to duplicated resources.
-     *
-     * @param ex      The thrown DuplicateResourceException.
-     * @param request The web request context.
-     * @return Ordered error payload with 400 Bad Request status.
-     */
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateResourceException(DuplicateResourceException ex, WebRequest request) {
         ErrorResponse errorResponse = new ErrorResponse(
@@ -56,12 +43,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles validation errors resulting from @Valid annotated payloads.
-     *
-     * @param ex      The validation exception thrown by Spring.
-     * @param request The web request context.
-     * @return Ordered error payload with 400 Bad Request status and the list of broken constraints.
+     * NUEVO: Maneja reglas de negocio → HTTP 409 Conflict.
+     * Así el frontend puede leer err.error.message y mostrarlo al usuario.
      */
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessRuleException(BusinessRuleException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                ex.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
         String errors = ex.getBindingResult().getFieldErrors().stream()
@@ -77,16 +72,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    /**
-     * Fallback handler for any other generic exception not explicitly defined.
-     *
-     * @param ex      The uncaught Exception.
-     * @param request The web request context.
-     * @return Ordered error payload with 500 Internal Server Error status.
-     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
-        ex.printStackTrace(); // Log the exact error to the terminal
+        ex.printStackTrace();
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),

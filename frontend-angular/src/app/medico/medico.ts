@@ -5,14 +5,14 @@
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router , RouterLink } from '@angular/router';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-medico',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule , RouterLink],
   templateUrl: './medico.html',
   styleUrl: './medico.css'
 })
@@ -24,6 +24,7 @@ export class Medico implements OnInit {
   // Info del médico autenticado
   medicoNombre       = '';
   medicoEspecialidad = '';
+  medicoSkills       = '';   // PUNTO 6: habilidades adicionales del médico
   medicoId: number | null = null;
 
   // ── Pestaña: Citas de hoy ──────────────────────────────────
@@ -120,6 +121,7 @@ export class Medico implements OnInit {
           this.medicoNombre       = data.fullName
             || `${data.firstName} ${data.lastName}`;
           this.medicoEspecialidad = data.specialty || '';
+          this.medicoSkills       = data.skills    || '';   // PUNTO 6: leer skills
           localStorage.setItem('nombreUsuario', this.medicoNombre);
           this.nuevaCita.doctorId = data.id;
           this.cdr.detectChanges();
