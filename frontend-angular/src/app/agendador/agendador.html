@@ -10,8 +10,13 @@
       <small class="text-muted" *ngIf="agendadorNombre">
         Bienvenido, <strong>{{ agendadorNombre }}</strong>
       </small>
-    </div>
-    <button class="btn btn-outline-danger" (click)="cerrarSesion()">Cerrar Sesión</button>
+    <div class="d-flex gap-2">
+    <a routerLink="/ayuda" class="btn btn-outline-info btn-sm">
+      📖 Ayuda
+    </a>
+    <button class="btn btn-outline-danger" (click)="cerrarSesion()">
+      Cerrar Sesión
+    </button>
   </div>
 
   <!-- ── MENSAJE GLOBAL CANCELACIÓN ── -->

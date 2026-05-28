@@ -5,14 +5,15 @@
 import { Component, Inject, PLATFORM_ID, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router , RouterLink } from '@angular/router';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
+
 
 @Component({
   selector: 'app-agendador',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, RouterLink],
   templateUrl: './agendador.html'
 })
 export class Agendador implements OnInit {

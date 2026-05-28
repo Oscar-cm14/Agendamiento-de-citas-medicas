@@ -4,19 +4,42 @@
 
 <div class="container my-4">
 
-  <!-- ── HEADER ── -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="mb-0">🩺 Panel Médico</h2>
+<!-- ── HEADER ── -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h2 class="mb-0">🩺 Panel Médico</h2>
+    <div class="mt-2">
       <small class="text-muted" *ngIf="medicoNombre">
         Bienvenido, <strong>{{ medicoNombre }}</strong>
         <span *ngIf="medicoEspecialidad"> · {{ medicoEspecialidad }}</span>
       </small>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- HABILIDADES ADICIONALES DEL MÉDICO (PUNTO 6-B)              -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <div *ngIf="medicoSkills" class="mt-2">
+        <small class="text-muted fw-semibold">🏆 Habilidades adicionales:</small>
+        <div class="d-flex flex-wrap gap-1 mt-1">
+          <span *ngFor="let h of medicoSkills.split(',')" 
+                class="badge bg-info text-dark">
+            ✨ {{ h.trim() }}
+          </span>
+        </div>
+      </div>
+      <div *ngIf="!medicoSkills && medicoNombre" class="mt-2">
+        <small class="text-muted">ℹ️ Sin habilidades adicionales registradas.</small>
+      </div>
     </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a routerLink="/ayuda" class="btn btn-outline-info btn-sm">
+      📖 Ayuda
+    </a>
     <button class="btn btn-outline-danger" (click)="cerrarSesion()">
       Cerrar Sesión
     </button>
   </div>
+</div>
 
   <!-- ── MENSAJE GLOBAL CANCELACIÓN ── -->
   <div *ngIf="mensajeCancelacion" class="alert py-2 mb-3"

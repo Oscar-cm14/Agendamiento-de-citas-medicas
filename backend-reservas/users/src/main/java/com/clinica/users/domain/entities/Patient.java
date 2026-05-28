@@ -1,6 +1,5 @@
 package com.clinica.users.domain.entities;
 
-
 import com.clinica.shared.domain.entities.Person;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -23,6 +22,9 @@ public class Patient extends Person {
 
     // RF2: género del paciente (Hombre, Mujer, Otro)
     private String gender;
+
+    // Dirección del paciente
+    private String address;
 
     // RF2: fecha de nacimiento (opcional)
     private LocalDate birthDate;

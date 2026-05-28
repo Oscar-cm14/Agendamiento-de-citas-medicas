@@ -1,0 +1,528 @@
+<!-- ============================================================
+     Manual de Ayuda y Soporte
+     
+     
+     Incluye manuales para: Paciente, Médico, Agendador, Admin.
+     Usa el acordeón de Bootstrap .
+     ============================================================ -->
+
+<div class="container my-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-0">📖 Ayuda y Soporte</h2>
+      <p class="text-muted mb-0 small">
+        Manuales de usuario del Sistema de Agendamiento de Citas Médicas
+      </p>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" (click)="volverAtras()">
+      ← Volver
+    </button>
+  </div>
+
+  <!-- Selector de rol / manual -->
+  <div class="d-flex gap-2 flex-wrap mb-4">
+    <button class="btn btn-sm"
+      [class.btn-primary]="seccionActiva==='paciente'"
+      [class.btn-outline-primary]="seccionActiva!=='paciente'"
+      (click)="seccionActiva='paciente'">👤 Paciente</button>
+    <button class="btn btn-sm"
+      [class.btn-success]="seccionActiva==='medico'"
+      [class.btn-outline-success]="seccionActiva!=='medico'"
+      (click)="seccionActiva='medico'">🩺 Médico</button>
+    <button class="btn btn-sm"
+      [class.btn-warning]="seccionActiva==='agendador'"
+      [class.btn-outline-warning]="seccionActiva!=='agendador'"
+      (click)="seccionActiva='agendador'">📋 Agendador</button>
+    <button class="btn btn-sm"
+      [class.btn-danger]="seccionActiva==='admin'"
+      [class.btn-outline-danger]="seccionActiva!=='admin'"
+      (click)="seccionActiva='admin'">🔐 Administrador</button>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       MANUAL PACIENTE
+       ══════════════════════════════════════ -->
+  <div *ngIf="seccionActiva==='paciente'">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white py-2">
+        <strong>👤 Manual de Usuario – Paciente</strong>
+      </div>
+      <div class="accordion" id="acPac">
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button"
+              data-bs-toggle="collapse" data-bs-target="#p1">
+              1. Cómo registrarse en el sistema
+            </button>
+          </h2>
+          <div id="p1" class="accordion-collapse collapse show" data-bs-parent="#acPac">
+            <div class="accordion-body">
+              <ol>
+                <li>En la página principal, haz clic en <strong>"Regístrate"</strong>.</li>
+                <li>Completa el formulario con tu documento, nombre, apellido, celular, género y correo.</li>
+                <li>Crea un usuario y una contraseña.</li>
+                <li>Haz clic en <strong>"Registrarse"</strong> y luego inicia sesión.</li>
+              </ol>
+              <div class="alert alert-info py-1 mt-2 small">
+                💡 Guarda tu usuario y contraseña en un lugar seguro.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#p2">
+              2. Cómo agendar una cita médica
+            </button>
+          </h2>
+          <div id="p2" class="accordion-collapse collapse" data-bs-parent="#acPac">
+            <div class="accordion-body">
+              <ol>
+                <li>Inicia sesión → serás redirigido al <strong>Panel Paciente</strong>.</li>
+                <li>En la pestaña <strong>"📅 Agendar Cita"</strong>, selecciona una <strong>especialidad</strong>.</li>
+                <li>Elige el médico (si hay solo uno, se asigna automáticamente).</li>
+                <li>Al seleccionar el médico, verás su tarjeta con su <strong>especialidad y habilidades adicionales</strong> para que puedas tomar una mejor decisión.</li>
+                <li>Selecciona la fecha en el calendario y elige una franja horaria.</li>
+                <li>Haz clic en <strong>"Confirmar Cita"</strong>. Recibirás un correo de confirmación.</li>
+              </ol>
+              <div class="alert alert-warning py-1 mt-2 small">
+                ⚠️ Solo puedes tener una cita activa a la vez. Tu primera cita debe ser de <strong>Consulta General</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#p3">
+              3. Ver mis citas y cancelar
+            </button>
+          </h2>
+          <div id="p3" class="accordion-collapse collapse" data-bs-parent="#acPac">
+            <div class="accordion-body">
+              <ol>
+                <li>Ve a la pestaña <strong>"📋 Mis Citas"</strong>.</li>
+                <li>Las citas <span class="badge bg-primary">Programadas</span> tienen el botón <strong>"Cancelar"</strong>.</li>
+                <li>Al cancelar, debes escribir el motivo. Recibirás un correo de confirmación de la cancelación.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#p4">
+              4. Editar mi información personal
+            </button>
+          </h2>
+          <div id="p4" class="accordion-collapse collapse" data-bs-parent="#acPac">
+            <div class="accordion-body">
+              <ol>
+                <li>Ve a la pestaña <strong>"✏️ Mi Perfil"</strong>.</li>
+                <li>Haz clic en <strong>"✏️ Editar datos"</strong>.</li>
+                <li>Modifica nombre, teléfono, correo, género o fecha de nacimiento.</li>
+                <li>Haz clic en <strong>"💾 Guardar cambios"</strong>. Si no quieres guardar, haz clic en <strong>"Cancelar"</strong>.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#p5">
+              5. Citas prioritarias – ¿Qué son?
+            </button>
+          </h2>
+          <div id="p5" class="accordion-collapse collapse" data-bs-parent="#acPac">
+            <div class="accordion-body">
+              <p>Las <strong>citas prioritarias</strong> son asignadas por el médico o agendador para casos urgentes.</p>
+              <ul>
+                <li>Las verás marcadas con 🚨 en <strong>"Mis Citas"</strong>.</li>
+                <li>No las puedes solicitar tú directamente; el profesional las crea por ti.</li>
+                <li>No están bloqueadas por la regla de "una cita activa a la vez".</li>
+              </ul>
+              <div class="alert alert-danger py-1 small mt-2">
+                🚨 Para emergencias reales, llama a los servicios de urgencias.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#p6">
+              6. Habilidades adicionales del médico
+            </button>
+          </h2>
+          <div id="p6" class="accordion-collapse collapse" data-bs-parent="#acPac">
+            <div class="accordion-body">
+              <p>Al seleccionar un médico para agendar tu cita, verás una tarjeta con:</p>
+              <ul>
+                <li>Su <strong>nombre</strong> y <strong>especialidad principal</strong>.</li>
+                <li>Sus <strong>habilidades adicionales</strong> mostradas como etiquetas de color
+                  (Ej: <span class="badge bg-info text-dark">✨ Acupuntura</span>
+                       <span class="badge bg-info text-dark">✨ Electroterapia</span>).
+                </li>
+              </ul>
+              <p>Esto te permite elegir el profesional más adecuado para tu necesidad específica.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       MANUAL MÉDICO
+       ══════════════════════════════════════ -->
+  <div *ngIf="seccionActiva==='medico'">
+    <div class="card shadow-sm">
+      <div class="card-header bg-success text-white py-2">
+        <strong>🩺 Manual de Usuario – Médico / Terapista</strong>
+      </div>
+      <div class="accordion" id="acMed">
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button"
+              data-bs-toggle="collapse" data-bs-target="#m1">
+              1. Acceso al sistema
+            </button>
+          </h2>
+          <div id="m1" class="accordion-collapse collapse show" data-bs-parent="#acMed">
+            <div class="accordion-body">
+              <p>El administrador crea tu cuenta y te entrega el usuario y contraseña.</p>
+              <ol>
+                <li>Ve a la pantalla de login.</li>
+                <li>Ingresa tu usuario y contraseña.</li>
+                <li>Serás redirigido automáticamente al <strong>Panel Médico</strong>.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#m2">
+              2. Ver las citas del día
+            </button>
+          </h2>
+          <div id="m2" class="accordion-collapse collapse" data-bs-parent="#acMed">
+            <div class="accordion-body">
+              <ol>
+                <li>La pestaña <strong>"📅 Citas de Hoy"</strong> carga automáticamente.</li>
+                <li>Las citas prioritarias aparecen primero, marcadas con 🚨.</li>
+                <li>Cambia el estado de cada cita con el selector:
+                  <em>Programada, Atendida, No asistida, Cancelada</em>.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#m3">
+              3. Agendar y reagendar citas
+            </button>
+          </h2>
+          <div id="m3" class="accordion-collapse collapse" data-bs-parent="#acMed">
+            <div class="accordion-body">
+              <strong>Agendar:</strong>
+              <ol>
+                <li>Ve a <strong>"➕ Agendar Cita"</strong>.</li>
+                <li>Ingresa el documento del paciente (se autocompleta si ya existe).</li>
+                <li>Selecciona especialidad, médico, fecha y franja.</li>
+                <li>Para urgencias, activa <strong>"🚨 ¿Cita prioritaria?"</strong>.</li>
+              </ol>
+              <strong>Reagendar:</strong>
+              <ol>
+                <li>Ve a <strong>"🔄 Reagendar Cita"</strong>.</li>
+                <li>Busca la cita por fecha y selecciónala.</li>
+                <li>Elige nueva fecha y hora, y confirma.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#m4">
+              4. Tus habilidades adicionales (cómo se muestran)
+            </button>
+          </h2>
+          <div id="m4" class="accordion-collapse collapse" data-bs-parent="#acMed">
+            <div class="accordion-body">
+              <p>El administrador registra tus habilidades adicionales en tu perfil.</p>
+              <ul>
+                <li>Se muestran en el <strong>encabezado de tu panel</strong> como etiquetas de colores.</li>
+                <li>Los pacientes las ven al seleccionarte como médico, en una tarjeta de presentación.</li>
+                <li>Ejemplo de habilidades: <em>Acupuntura, Electroterapia, Rehabilitación deportiva</em>.</li>
+              </ul>
+              <p>Si tus habilidades no están actualizadas, contacta al administrador.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#m5">
+              5. Citas prioritarias en tu panel
+            </button>
+          </h2>
+          <div id="m5" class="accordion-collapse collapse" data-bs-parent="#acMed">
+            <div class="accordion-body">
+              <ul>
+                <li>Las citas prioritarias se muestran <strong>al inicio</strong> de la lista con el ícono 🚨.</li>
+                <li>Al crearla, activa el toggle <strong>"🚨 ¿Cita prioritaria?"</strong>.</li>
+                <li>Desde la lista de "Citas de Hoy", usa el botón <strong>"Marcar prioritaria"</strong>.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       MANUAL AGENDADOR
+       ══════════════════════════════════════ -->
+  <div *ngIf="seccionActiva==='agendador'">
+    <div class="card shadow-sm">
+      <div class="card-header bg-warning py-2">
+        <strong>📋 Manual de Usuario – Agendador</strong>
+      </div>
+      <div class="accordion" id="acAg">
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button"
+              data-bs-toggle="collapse" data-bs-target="#ag1">
+              1. Funciones del agendador
+            </button>
+          </h2>
+          <div id="ag1" class="accordion-collapse collapse show" data-bs-parent="#acAg">
+            <div class="accordion-body">
+              <ul>
+                <li>Crear citas para pacientes que llaman o asisten presencialmente.</li>
+                <li>Buscar y listar citas por médico y fecha.</li>
+                <li>Reagendar citas existentes.</li>
+                <li>Exportar reportes en CSV.</li>
+                <li>Gestionar <strong>citas prioritarias</strong> para casos urgentes.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#ag2">
+              2. Crear una cita
+            </button>
+          </h2>
+          <div id="ag2" class="accordion-collapse collapse" data-bs-parent="#acAg">
+            <div class="accordion-body">
+              <ol>
+                <li>Ve a la pestaña <strong>"➕ Nueva Cita"</strong>.</li>
+                <li>Ingresa el documento del paciente. Si ya existe, sus datos se autocompletan.</li>
+                <li>Si es nuevo, llena todos los campos del formulario.</li>
+                <li>Selecciona especialidad, médico, fecha y hora.</li>
+                <li>Para urgencias, activa <strong>"🚨 ¿Es cita prioritaria?"</strong>.</li>
+                <li>Haz clic en <strong>"Crear Cita"</strong>.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#ag3">
+              3. Citas prioritarias
+            </button>
+          </h2>
+          <div id="ag3" class="accordion-collapse collapse" data-bs-parent="#acAg">
+            <div class="accordion-body">
+              <p>Para pacientes que necesitan atención urgente:</p>
+              <ol>
+                <li>Crea la cita normalmente.</li>
+                <li>Activa el toggle <strong>"🚨 ¿Es cita prioritaria?"</strong>.</li>
+                <li>La cita aparecerá marcada con 🚨 en el panel del médico, al inicio de la lista.</li>
+              </ol>
+              <div class="alert alert-warning py-1 small mt-2">
+                ⚠️ Úsalo solo en casos genuinamente urgentes.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#ag4">
+              4. Exportar reporte CSV
+            </button>
+          </h2>
+          <div id="ag4" class="accordion-collapse collapse" data-bs-parent="#acAg">
+            <div class="accordion-body">
+              <ol>
+                <li>Ve a <strong>"🔍 Listar Citas"</strong>.</li>
+                <li>Selecciona médico y fecha, y haz clic en <strong>"Buscar"</strong>.</li>
+                <li>Una vez cargados los resultados, haz clic en <strong>"⬇️ Exportar CSV"</strong>.</li>
+                <li>El archivo se descargará automáticamente.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       MANUAL ADMINISTRADOR
+       ══════════════════════════════════════ -->
+  <div *ngIf="seccionActiva==='admin'">
+    <div class="card shadow-sm">
+      <div class="card-header bg-danger text-white py-2">
+        <strong>🔐 Manual de Usuario – Administrador</strong>
+      </div>
+      <div class="accordion" id="acAdm">
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button"
+              data-bs-toggle="collapse" data-bs-target="#adm1">
+              1. Registrar médicos y agendadores
+            </button>
+          </h2>
+          <div id="adm1" class="accordion-collapse collapse show" data-bs-parent="#acAdm">
+            <div class="accordion-body">
+              <ol>
+                <li>Ve a la pestaña correspondiente: <strong>"👨‍⚕️ Registrar Médico"</strong> o <strong>"📋 Registrar Agendador"</strong>.</li>
+                <li>Completa todos los campos obligatorios.</li>
+                <li>Haz clic en <strong>"Registrar"</strong>. El usuario podrá iniciar sesión de inmediato.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#adm2">
+              2. Editar información de médicos y agendadores
+            </button>
+          </h2>
+          <div id="adm2" class="accordion-collapse collapse" data-bs-parent="#acAdm">
+            <div class="accordion-body">
+              <ol>
+                <li>Ve a <strong>"✏️ Editar Médico"</strong> o <strong>"✏️ Editar Agendador"</strong>.</li>
+                <li>Selecciona el usuario de la lista desplegable.</li>
+                <li>Sus datos se cargan automáticamente.</li>
+                <li>Modifica los campos necesarios y haz clic en <strong>"💾 Guardar cambios"</strong>.</li>
+              </ol>
+              <p><strong>Para las habilidades adicionales del médico:</strong> en el campo
+                <em>"Habilidades adicionales"</em> escribe las habilidades separadas por coma.
+                Verás una vista previa en tiempo real como etiquetas de colores.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#adm3">
+              3. Gestión de roles
+            </button>
+          </h2>
+          <div id="adm3" class="accordion-collapse collapse" data-bs-parent="#acAdm">
+            <div class="accordion-body">
+              <ol>
+                <li>Ve a la pestaña <strong>"🔐 Gestión de Roles"</strong>.</li>
+                <li>Se carga la lista de todos los usuarios con su rol actual.</li>
+                <li>Usa el selector en la columna <em>"Cambiar rol"</em> para asignar el nuevo rol.</li>
+                <li>El cambio es inmediato.</li>
+              </ol>
+              <div class="alert alert-danger py-1 small mt-2">
+                ⚠️ Dar el rol ADMIN a un usuario le otorga acceso total al sistema.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#adm4">
+              4. Configurar horarios de médicos
+            </button>
+          </h2>
+          <div id="adm4" class="accordion-collapse collapse" data-bs-parent="#acAdm">
+            <div class="accordion-body">
+              <ol>
+                <li>Ve a la pestaña <strong>"📅 Horarios Médicos"</strong>.</li>
+                <li>Selecciona el médico del desplegable.</li>
+                <li>Marca los días de atención, configura hora de inicio/fin e intervalo entre citas.</li>
+                <li>Haz clic en <strong>"Guardar Horario"</strong>.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#adm5">
+              5. Configuración general del sistema
+            </button>
+          </h2>
+          <div id="adm5" class="accordion-collapse collapse" data-bs-parent="#acAdm">
+            <div class="accordion-body">
+              <p>En <strong>"⚙️ Configuración"</strong> defines la <em>ventana de tiempo en semanas</em>
+                para agendar citas.</p>
+              <ul>
+                <li>Ejemplo: 4 semanas → los pacientes pueden agendar hasta 4 semanas en el futuro.</li>
+                <li>Valor mínimo recomendado: 2 semanas.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Pie de página -->
+  <div class="card mt-4 border-0 bg-light text-center">
+    <div class="card-body py-3">
+      <p class="mb-1 text-muted small">
+        📧 Para soporte adicional contacta al administrador del sistema.
+      </p>
+      <small class="text-muted">
+        Sistema de Agendamiento de Citas Médicas – Clínica
+      </small>
+    </div>
+  </div>
+
+</div>

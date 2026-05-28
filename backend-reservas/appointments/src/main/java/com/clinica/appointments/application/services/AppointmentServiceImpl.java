@@ -14,6 +14,7 @@ import com.clinica.doctors.domain.entities.DoctorSchedule;
 import com.clinica.doctors.infrastructure.repositories.DoctorScheduleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.clinica.shared.domain.exceptions.BusinessRuleException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -70,7 +71,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         boolean ocupado = appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                 request.doctorId(), request.date(), request.startTime());
-        if (ocupado) throw new RuntimeException("Ya existe una cita en esa franja horaria");
+        if (ocupado) throw new BusinessRuleException("Ya existe una cita en esa franja horaria");
 
         // ── REGLAS DE NEGOCIO: VALIDACIÓN DE HISTORIAL DEL PACIENTE ──
         List<Appointment> patientAppts = appointmentRepository.findByPatientId(request.patientId());
@@ -91,16 +92,15 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // Regla 1: No puede tener citas agendadas/pendientes simultáneas
         if (hasScheduled) {
-            throw new RuntimeException("No puede agendar nuevas citas mientras tenga una cita pendiente o agendada");
+                throw new BusinessRuleException("No puede agendar nuevas citas mientras tenga una cita pendiente o agendada");
         }
 
         // Regla 3: Si no es Consulta General, debe tener una completada antes
         Doctor targetDoctor = doctorRepository.findById(request.doctorId()).get();
+        // DESPUÉS:
         if (targetDoctor.getSpecialty() != null && !targetDoctor.getSpecialty().equalsIgnoreCase("Consulta General") && !hasCompletedGeneral) {
-            throw new RuntimeException("Debe tener una Consulta General completada antes de agendar esta especialidad");
+            throw new BusinessRuleException("Debe tener una Consulta General completada antes de agendar esta especialidad");
         }
-        // ─────────────────────────────────────────────────────────────
-
         int intervalMinutes = doctorScheduleRepository.findByDoctorId(request.doctorId())
                 .map(DoctorSchedule::getIntervalMinutes)
                 .filter(i -> i != null && i > 0).orElse(30);
@@ -124,7 +124,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         boolean ocupado = appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                 request.doctorId(), request.date(), request.startTime());
-        if (ocupado) throw new RuntimeException("La franja seleccionada ya está ocupada");
+        
+        if (ocupado) throw new BusinessRuleException("La franja seleccionada ya está ocupada");
 
         int intervalMinutes = doctorScheduleRepository.findByDoctorId(request.doctorId())
                 .map(DoctorSchedule::getIntervalMinutes)
@@ -138,7 +139,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         return toResponse(appointmentRepository.save(appointment));
     }
 
-    // ── NUEVO: Cancelar cita con motivo ──────────────────────────────────────
+    //  Cancelar cita con motivo ──────────────────────────────────────
     @Override
     @Transactional
     public AppointmentResponse cancelAppointment(Long appointmentId, CancelRequest request) {
@@ -146,13 +147,13 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
 
         if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
-            throw new RuntimeException("La cita ya está cancelada");
+            throw new BusinessRuleException("La cita ya está cancelada");
         }
         if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
-            throw new RuntimeException("No se puede cancelar una cita ya completada");
+            throw new BusinessRuleException("No se puede cancelar una cita ya completada");
         }
         if (request.reason() == null || request.reason().isBlank()) {
-            throw new RuntimeException("Debe indicar el motivo de cancelación");
+            throw new BusinessRuleException("Debe indicar el motivo de cancelación");
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
@@ -161,39 +162,83 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<AvailableSlotResponse> getAvailableSlots(Long doctorId, LocalDate date) {
-        List<AvailableSlotResponse> slots = new ArrayList<>();
-        java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
-        Optional<DoctorSchedule> scheduleOpt = doctorScheduleRepository.findByDoctorId(doctorId);
+@Transactional(readOnly = true)
+public List<AvailableSlotResponse> getAvailableSlots(Long doctorId, LocalDate date) {
 
-        LocalTime inicio; LocalTime fin; int intervalo;
+    List<AvailableSlotResponse> slots = new ArrayList<>();
 
-        if (scheduleOpt.isPresent()) {
-            DoctorSchedule schedule = scheduleOpt.get();
-            if (schedule.getWorkingDays() == null
-                    || !schedule.getWorkingDays().contains(dayOfWeek)) return slots;
-            inicio    = schedule.getStartTime()       != null ? schedule.getStartTime()       : LocalTime.of(8, 0);
-            fin       = schedule.getEndTime()          != null ? schedule.getEndTime()          : LocalTime.of(17, 0);
-            intervalo = (schedule.getIntervalMinutes() != null && schedule.getIntervalMinutes() > 0)
-                        ? schedule.getIntervalMinutes() : 30;
-        } else {
-            if (dayOfWeek == java.time.DayOfWeek.SATURDAY
-                    || dayOfWeek == java.time.DayOfWeek.SUNDAY) return slots;
-            inicio = LocalTime.of(8, 0); fin = LocalTime.of(17, 0); intervalo = 30;
-        }
+    java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
 
-        LocalTime current = inicio;
-        while (current.isBefore(fin)) {
-            LocalTime next = current.plusMinutes(intervalo);
-            if (next.isAfter(fin)) break;
-            boolean ocupado = appointmentRepository.existsByDoctorIdAndDateAndStartTime(
-                    doctorId, date, current);
-            slots.add(new AvailableSlotResponse(current, next, !ocupado));
-            current = next;
-        }
+    Optional<DoctorSchedule> scheduleOpt =
+            doctorScheduleRepository.findByDoctorId(doctorId);
+
+    // ─────────────────────────────────────────────────────────────
+    // SI EL MÉDICO NO TIENE HORARIO CONFIGURADO
+    // NO SE DEBEN MOSTRAR FRANJAS
+    // ─────────────────────────────────────────────────────────────
+    if (scheduleOpt.isEmpty()) {
         return slots;
     }
+
+    DoctorSchedule schedule = scheduleOpt.get();
+
+    // ─────────────────────────────────────────────────────────────
+    // VALIDAR QUE EL MÉDICO TRABAJE ESE DÍA
+    // ─────────────────────────────────────────────────────────────
+    if (schedule.getWorkingDays() == null
+            || !schedule.getWorkingDays().contains(dayOfWeek)) {
+        return slots;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // OBTENER CONFIGURACIÓN REAL DEL MÉDICO
+    // ─────────────────────────────────────────────────────────────
+    LocalTime inicio = schedule.getStartTime();
+    LocalTime fin = schedule.getEndTime();
+
+    int intervalo = (schedule.getIntervalMinutes() != null
+            && schedule.getIntervalMinutes() > 0)
+            ? schedule.getIntervalMinutes()
+            : 30;
+
+    // VALIDACIONES EXTRA
+    if (inicio == null || fin == null) {
+        return slots;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // GENERAR FRANJAS
+    // ─────────────────────────────────────────────────────────────
+    LocalTime current = inicio;
+
+    while (current.isBefore(fin)) {
+
+        LocalTime next = current.plusMinutes(intervalo);
+
+        if (next.isAfter(fin)) {
+            break;
+        }
+
+        boolean ocupado =
+                appointmentRepository.existsByDoctorIdAndDateAndStartTime(
+                        doctorId,
+                        date,
+                        current
+                );
+
+        slots.add(
+                new AvailableSlotResponse(
+                        current,
+                        next,
+                        !ocupado
+                )
+        );
+
+        current = next;
+    }
+
+    return slots;
+}
 
     @Override
     public List<AppointmentResponse> listAppointmentsByPatient(Long patientId) {

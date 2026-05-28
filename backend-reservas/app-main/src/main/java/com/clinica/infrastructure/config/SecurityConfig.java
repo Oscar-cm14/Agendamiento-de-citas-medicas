@@ -45,7 +45,8 @@ public class SecurityConfig {
 
                 // ── Solo ADMIN ────────────────────────────────────────────
                 .requestMatchers("/api/v1/configurations/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/doctors/schedules/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/doctors/schedules/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/doctors/schedules/**").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
                 .requestMatchers(HttpMethod.POST, "/api/v1/doctors").hasRole("ADMIN")
 
                 // ── Médicos ───────────────────────────────────────────────
@@ -59,9 +60,13 @@ public class SecurityConfig {
                 // ── Pacientes ─────────────────────────────────────────────
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
-                // NUEVO: buscar paciente por username para el login
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/patients/by-username").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
+                // agregar permisos para editar perfil del paciente
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/patients/by-id/**").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/patients/**").hasAnyRole("ADMIN", "PATIENT")
 
                 // ── Citas ─────────────────────────────────────────────────
                 .requestMatchers(HttpMethod.POST,
@@ -80,7 +85,26 @@ public class SecurityConfig {
                 // ── Exportar citas a CSV ──────────────────────────────────
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/appointments/export").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
-
+                // ── Gestión de usuarios y roles (solo ADMIN) ──────────────────────────────
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/users").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/users/*/roles").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/users/*/roles").hasRole("ADMIN")
+                
+                // ── Editar médico y agendador (solo ADMIN) ────────────────────────────────
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/doctors/*").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/doctors/*").hasAnyRole("ADMIN", "DOCTOR", "PATIENT", "SCHEDULER")
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/schedulers").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/schedulers/*").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/schedulers/*").hasRole("ADMIN")
+ 
                 // ── Todo lo demás requiere autenticación ──────────────────
                 .anyRequest().authenticated()
             )

@@ -1,5 +1,7 @@
 package com.clinica.doctors.domain.entities;
 
+
+
 import com.clinica.shared.domain.entities.Person;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,4 +25,11 @@ public class Doctor extends Person {
     private String licenseNumber;
 
     private Boolean active;
+
+   // Habilidades adicionales del médico ──────────
+    // Se almacenan como texto separado por comas.
+    // Ejemplo: "Acupuntura,Electroterapia,Rehabilitación deportiva"
+    // El frontend divide por "," para mostrar cada habilidad como badge.
+    @Column(name = "skills", length = 500)
+    private String skills;
 }
