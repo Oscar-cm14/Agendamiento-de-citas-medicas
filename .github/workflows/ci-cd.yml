@@ -13,7 +13,7 @@ on:
 jobs:
 
   # ===========================================================================
-  # JOB 1: CI BACKEND — Compilar y ejecutar todos los tests
+  # JOB 1: CI BACKEND
   # ===========================================================================
   ci-backend:
     name: "CI — Backend (Spring Boot + Tests)"
@@ -29,6 +29,10 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+
+      # Verificar estructura del repositorio para debug
+      - name: Mostrar estructura
+        run: ls -la
 
       - name: Compilar backend
         working-directory: backend-reservas
@@ -48,16 +52,8 @@ jobs:
           path: backend-reservas/**/target/surefire-reports/
           retention-days: 7
 
-      - name: Guardar JAR compilado
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: backend-jar
-          path: backend-reservas/app-main/target/*.jar
-          retention-days: 1
-
   # ===========================================================================
-  # JOB 2: CI FRONTEND — Compilar Angular
+  # JOB 2: CI FRONTEND
   # ===========================================================================
   ci-frontend:
     name: "CI — Frontend (Angular)"
@@ -71,24 +67,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend-angular/package-lock.json
+          # Sin cache: evita el error de package-lock.json no encontrado
 
       - name: Instalar dependencias
         working-directory: frontend-angular
-        run: npm ci
+        run: npm install
 
       - name: Compilar Angular (producción)
         working-directory: frontend-angular
         run: npm run build -- --configuration production
-
-      - name: Guardar build del frontend
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: frontend-dist
-          path: frontend-angular/dist/
-          retention-days: 1
 
   # ===========================================================================
   # JOB 3: CD — Deploy en Render (solo en push a main)
@@ -104,14 +91,13 @@ jobs:
         run: |
           echo "Desplegando versión: ${{ github.sha }}"
           if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
-              -H "Accept: application/json" || echo "Deploy hook ejecutado"
+            curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" || echo "Hook ejecutado"
           else
-            echo "RENDER_DEPLOY_HOOK_URL no configurado aún - despliegue manual requerido"
+            echo "RENDER_DEPLOY_HOOK_URL no configurado aún"
           fi
 
   # ===========================================================================
-  # JOB 4: CD — Frontend en Vercel (se despliega automáticamente)
+  # JOB 4: CD — Frontend en Vercel
   # ===========================================================================
   cd-deploy-frontend:
     name: "CD — Deploy Frontend en Vercel"
@@ -120,5 +106,5 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: Confirmar deploy en Vercel
-        run: echo "Vercel detecta el push a main automáticamente y redespliega el frontend."
+      - name: Confirmar deploy
+        run: echo "Vercel detecta el push a main y redespliega automáticamente."
