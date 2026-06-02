@@ -11,6 +11,6 @@
 
 export const environment = {
   production: true,
-  apiUrl:       'https://clinica-backend.up.railway.app/api/v1',
+  apiUrl:       'https://agendamiento-de-citas-medicas.onrender.com/api/v1',
   keycloakUrl:  'https://clinica-keycloak.up.railway.app'
 };
