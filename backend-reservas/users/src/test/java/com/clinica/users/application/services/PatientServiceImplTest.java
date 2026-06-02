@@ -41,9 +41,6 @@ class PatientServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    // ============================================
-    // NUEVO MOCK NECESARIO
-    // ============================================
     @Mock
     private KeycloakAdminService keycloakAdminService;
 
@@ -56,7 +53,6 @@ class PatientServiceImplTest {
 
     @BeforeEach
     void setUp() {
-
         request = new PatientRegistrationRequest(
                 "1234567890",
                 "John",
@@ -84,26 +80,14 @@ class PatientServiceImplTest {
 
     @Test
     void registerPatient_NewPatient_Success() {
-
         when(patientRepository.findByIdentification(request.identification()))
                 .thenReturn(Optional.empty());
-
         when(userRepository.findByUsername(request.username()))
                 .thenReturn(Optional.empty());
-
         when(passwordEncoder.encode(request.password()))
                 .thenReturn("encodedPassword");
-
-        // ============================================
-        // MOCK KEYCLOAK
-        // ============================================
         doNothing().when(keycloakAdminService).createUser(
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any()
+                any(), any(), any(), any(), any(), any()
         );
 
         User savedUser = new User();
@@ -114,11 +98,9 @@ class PatientServiceImplTest {
         newPatient.setFirstName("John");
         newPatient.setLastName("Doe");
         newPatient.setEmail("john@example.com");
-
         savedUser.setPerson(newPatient);
 
-        when(userRepository.save(any(User.class)))
-                .thenReturn(savedUser);
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         PatientResponse response = patientService.registerPatient(request);
 
@@ -126,35 +108,43 @@ class PatientServiceImplTest {
         assertEquals(2L, response.id());
         assertEquals("John Doe", response.fullName());
         assertEquals("johndoe", response.username());
-
         verify(userRepository).save(any(User.class));
     }
 
     @Test
     void registerPatient_ExistingPatient_ReturnsExisting() {
 
-        when(patientRepository.findByIdentification(request.identification()))
-                .thenReturn(Optional.of(existingPatient));
+        // Sin contraseña → solo retorna el existente, no actualiza nada
+        PatientRegistrationRequest requestSinPassword = new PatientRegistrationRequest(
+                "1234567890",
+                "John",
+                "Doe",
+                "0987654321",
+                "Hombre",
+                LocalDate.of(1990, 1, 1),
+                "john@example.com",
+                "johndoe",
+                null  // ← sin contraseña
+        );
 
+        when(patientRepository.findByIdentification(requestSinPassword.identification()))
+                .thenReturn(Optional.of(existingPatient));
         when(userRepository.findAll())
                 .thenReturn(List.of(existingUser));
 
-        PatientResponse response = patientService.registerPatient(request);
+        PatientResponse response = patientService.registerPatient(requestSinPassword);
 
         assertNotNull(response);
         assertEquals(1L, response.id());
         assertEquals("John Doe", response.fullName());
         assertEquals("johndoe", response.username());
-
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void registerPatient_UsernameExists_ThrowsException() {
-
         when(patientRepository.findByIdentification(request.identification()))
                 .thenReturn(Optional.empty());
-
         when(userRepository.findByUsername(request.username()))
                 .thenReturn(Optional.of(existingUser));
 
@@ -162,16 +152,13 @@ class PatientServiceImplTest {
                 UsernameAlreadyExistsException.class,
                 () -> patientService.registerPatient(request)
         );
-
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void findByIdentification_Exists_ReturnsDetail() {
-
         when(patientRepository.findByIdentification("1234567890"))
                 .thenReturn(Optional.of(existingPatient));
-
         when(userRepository.findAll())
                 .thenReturn(List.of(existingUser));
 
@@ -179,26 +166,13 @@ class PatientServiceImplTest {
                 patientService.findByIdentification("1234567890");
 
         assertTrue(result.isPresent());
-
-        assertEquals(
-                "1234567890",
-                result.get().identification()
-        );
-
-        assertEquals(
-                "John Doe",
-                result.get().fullName()
-        );
-
-        assertEquals(
-                "johndoe",
-                result.get().username()
-        );
+        assertEquals("1234567890", result.get().identification());
+        assertEquals("John Doe", result.get().fullName());
+        assertEquals("johndoe", result.get().username());
     }
 
     @Test
     void findByIdentification_NotExists_ReturnsEmpty() {
-
         when(patientRepository.findByIdentification("9999999999"))
                 .thenReturn(Optional.empty());
 
