@@ -1,10 +1,10 @@
 package com.clinica.doctors.application.services;
 
-import com.clinica.shared.domain.UserRole;
 import com.clinica.shared.domain.exceptions.IdentificationAlreadyExistsException;
 import com.clinica.shared.domain.exceptions.UsernameAlreadyExistsException;
 import com.clinica.shared.dto.DoctorRegistrationRequest;
 import com.clinica.shared.dto.DoctorResponse;
+import com.clinica.shared.infrastructure.keycloak.KeycloakAdminService;
 import com.clinica.doctors.domain.entities.Doctor;
 import com.clinica.doctors.infrastructure.repositories.DoctorRepository;
 import com.clinica.shared.domain.entities.Person;
@@ -41,6 +41,9 @@ class DoctorServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private KeycloakAdminService keycloakAdminService; // ← CORRECCIÓN
+
     @InjectMocks
     private DoctorServiceImpl doctorService;
 
@@ -66,6 +69,9 @@ class DoctorServiceImplTest {
         when(userRepository.findByUsername(request.username())).thenReturn(Optional.empty());
         when(personRepository.findByIdentification(request.identification())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(request.password())).thenReturn("encodedPassword");
+        doNothing().when(keycloakAdminService).createUser(
+                any(), any(), any(), any(), any(), any()
+        );
 
         User savedUser = new User();
         savedUser.setUsername("drhouse");
@@ -80,24 +86,31 @@ class DoctorServiceImplTest {
         assertEquals("Gregory House", response.fullName());
         assertEquals("Diagnostician", response.specialty());
         verify(userRepository).save(any(User.class));
+        verify(keycloakAdminService).createUser(
+                eq("drhouse"), eq("vicodin"),
+                eq("house@example.com"), eq("Gregory"), eq("House"), eq("DOCTOR")
+        );
     }
 
     @Test
     void registerDoctor_UsernameExists_ThrowsException() {
         when(userRepository.findByUsername(request.username())).thenReturn(Optional.of(new User()));
 
-        assertThrows(UsernameAlreadyExistsException.class, () -> doctorService.registerDoctor(request));
+        assertThrows(UsernameAlreadyExistsException.class,
+                () -> doctorService.registerDoctor(request));
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void registerDoctor_IdentificationExists_ThrowsException() {
         when(userRepository.findByUsername(request.username())).thenReturn(Optional.empty());
-        
-        Person existingPerson = new Doctor();
-        when(personRepository.findByIdentification(request.identification())).thenReturn(Optional.of(existingPerson));
 
-        assertThrows(IdentificationAlreadyExistsException.class, () -> doctorService.registerDoctor(request));
+        Person existingPerson = new Doctor();
+        when(personRepository.findByIdentification(request.identification()))
+                .thenReturn(Optional.of(existingPerson));
+
+        assertThrows(IdentificationAlreadyExistsException.class,
+                () -> doctorService.registerDoctor(request));
         verify(userRepository, never()).save(any(User.class));
     }
 
