@@ -7,28 +7,20 @@ import com.clinica.shared.dto.SchedulerUpdateRequest;
 
 import java.util.List;
 
-/**
- * Contrato de operaciones para la gestión de agendadores.
- *
- * CAMBIOS respecto a la versión original:
- *  - listSchedulers()           → lista todos los agendadores con detalle completo.
- *  - getSchedulerDetailById()   → obtiene un agendador con todos sus campos.
- *  - updateScheduler()          → actualiza los datos de un agendador existente.
- */
 public interface SchedulerService {
 
-    /** Registrar un nuevo agendador (flujo existente). */
+    /** Registrar un nuevo agendador. */
     SchedulerResponse registerScheduler(SchedulerRegistrationRequest request);
 
-    /** NUEVO: Listar todos los agendadores con detalle completo. */
+    /** Listar todos los agendadores (solo ADMIN). */
     List<SchedulerDetailResponse> listSchedulers();
 
-    /** NUEVO: Obtener un agendador con todos los campos para el formulario de edición. */
+    /** Detalle de un agendador por ID. */
     SchedulerDetailResponse getSchedulerDetailById(Long id);
 
-    /**
-     * NUEVO: Actualizar los datos de un agendador existente.
-     * Solo modifica los campos no-nulos del request (partial update).
-     */
+    /** Actualizar datos de un agendador. */
     SchedulerDetailResponse updateScheduler(Long id, SchedulerUpdateRequest request);
+
+    /** Obtener el agendador por username (para el endpoint /me). */
+    SchedulerDetailResponse getSchedulerByUsername(String username);
 }

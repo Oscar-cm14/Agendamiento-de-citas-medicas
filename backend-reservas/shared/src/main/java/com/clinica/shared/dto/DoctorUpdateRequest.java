@@ -12,6 +12,6 @@ public record DoctorUpdateRequest(
         String phone,
         String specialty,
         String licenseNumber,
-        String skills   // habilidades adicionales, separadas por coma
-
+        String skills,
+        String password
 ) {}

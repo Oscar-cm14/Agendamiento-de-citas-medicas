@@ -19,18 +19,14 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio que interactúa con la API Admin de Keycloak.
- *
- * CAMBIOS respecto a la versión original (solo tenía createUser):
- *  - listUsersWithRoles()           NUEVO: lista todos los usuarios del realm
- *                                   con sus roles, para el panel de gestión.
- *  - getUserRoles(keycloakId)       NUEVO: retorna los roles de un usuario por UUID.
- *  - getUserKeycloakId(username)    NUEVO: expuesto como public para UserController.
- *  - updateUserRolesByKeycloakId()  NUEVO: reemplaza todos los roles de un usuario.
- *
- * Los métodos originales (createUser, getAdminToken) NO se modificaron.
  */
 @Service
 public class KeycloakAdminService {
+
+    // Excepción interna para distinguir el 409 (usuario ya existe)
+    private static class UserAlreadyExistsInKeycloakException extends RuntimeException {
+        public UserAlreadyExistsInKeycloakException(String msg) { super(msg); }
+    }
 
     private final WebClient webClient;
 
@@ -54,7 +50,7 @@ public class KeycloakAdminService {
     }
 
     // =========================================================
-    // Obtener token de administrador (sin cambios)
+    // Obtener token de administrador
     // =========================================================
 
     private String getAdminToken() {
@@ -95,13 +91,12 @@ public class KeycloakAdminService {
     }
 
     // =========================================================
-    // Crear usuario en Keycloak y asignar rol (sin cambios)
+    // Crear usuario en Keycloak y asignar rol
+    // BUG-FIX: si el usuario ya existe (409), actualiza su contraseña
+    //          y re-asigna el rol en vez de fallar.
+    // BUG-FIX: reintenta getUserKeycloakId para evitar race condition de timing.
     // =========================================================
 
-    /**
-     * Crea un usuario en Keycloak y le asigna el rol indicado.
-     * (Flujo original — no se modificó.)
-     */
     public void createUser(String username, String password, String email,
                            String firstName, String lastName, String roleName) {
 
@@ -109,21 +104,26 @@ public class KeycloakAdminService {
         String baseUrl = serverUrl + "/admin/realms/" + realm;
 
         Map<String, Object> userRepresentation = new HashMap<>();
-        userRepresentation.put("username",  username);
-        userRepresentation.put("firstName", firstName);
-        userRepresentation.put("lastName",  lastName);
-        userRepresentation.put("enabled",   true);
+        userRepresentation.put("username",       username);
+        userRepresentation.put("firstName",      firstName);
+        userRepresentation.put("lastName",       lastName);
+        userRepresentation.put("enabled",        true);
+        userRepresentation.put("requiredActions", List.of());
         userRepresentation.put("credentials", List.of(Map.of(
                 "type",      "password",
                 "value",     password,
                 "temporary", false
         )));
 
+        userRepresentation.put("emailVerified", true);
         if (email != null && !email.isBlank()) {
-            userRepresentation.put("email",         email);
-            userRepresentation.put("emailVerified", true);
+            userRepresentation.put("email", email);
         }
 
+        // BUG-FIX 1: Si el usuario ya existe en Keycloak (409 Conflict),
+        // en vez de lanzar excepción (que haría rollback de H2),
+        // actualizamos su contraseña y continuamos.
+        boolean usuarioYaExistia = false;
         try {
             webClient.post()
                     .uri(baseUrl + "/users")
@@ -131,6 +131,12 @@ public class KeycloakAdminService {
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(userRepresentation)
                     .retrieve()
+                    .onStatus(
+                        status -> status.value() == 409,
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                            .map(body -> new UserAlreadyExistsInKeycloakException(
+                                "Usuario '" + username + "' ya existe en Keycloak"))
+                    )
                     .onStatus(
                         status -> status.is4xxClientError() || status.is5xxServerError(),
                         clientResponse -> clientResponse.bodyToMono(String.class)
@@ -141,35 +147,36 @@ public class KeycloakAdminService {
                     )
                     .toBodilessEntity()
                     .block();
+        } catch (UserAlreadyExistsInKeycloakException ex) {
+            usuarioYaExistia = true;
         } catch (WebClientResponseException ex) {
             throw new RuntimeException(
                 "Error al crear usuario '" + username + "' en Keycloak: " + ex.getMessage(), ex);
         }
 
-        String userId = getUserKeycloakId(username, token, baseUrl);
+        // BUG-FIX 2: Obtener el UUID del usuario con reintentos.
+        // Keycloak a veces no indexa al usuario inmediatamente luego del POST,
+        // por lo que un GET inmediato puede devolver lista vacía.
+        String userId = getUserKeycloakIdConReintento(username, token, baseUrl);
+
+        if (usuarioYaExistia) {
+            // Actualizar la contraseña con la nueva que eligió el paciente
+            actualizarPasswordEnKeycloak(userId, password, token, baseUrl);
+        }
+
+        // Asignar el rol. Si el usuario ya lo tiene, Keycloak lo ignora.
         assignRoleToUser(userId, roleName, token, baseUrl);
     }
 
     // =========================================================
-    // NUEVO: Listar usuarios del realm con sus roles
+    // Listar usuarios del realm con sus roles
     // =========================================================
 
-    /**
-     * Retorna todos los usuarios del realm con sus roles realm asignados.
-     *
-     * Cada elemento del Map contiene los campos estándar de Keycloak
-     * (id, username, firstName, lastName, email, enabled, …)
-     * más la clave "realmRoles" con la lista de nombres de roles.
-     *
-     * Se excluyen roles internos de Keycloak:
-     * "default-roles-*", "uma_authorization", "offline_access".
-     */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> listUsersWithRoles() {
         String token   = getAdminToken();
         String baseUrl = serverUrl + "/admin/realms/" + realm;
 
-        // 1. Obtener todos los usuarios del realm (máximo 200)
         List<Map<String, Object>> users;
         try {
             users = (List<Map<String, Object>>) webClient.get()
@@ -191,29 +198,22 @@ public class KeycloakAdminService {
 
         if (users == null) return List.of();
 
-        // 2. Para cada usuario, obtener sus roles realm y agregarlos al mapa
         List<Map<String, Object>> result = new ArrayList<>();
         for (Map<String, Object> user : users) {
             String userId      = (String) user.get("id");
             List<String> roles = getUserRoles(userId, token, baseUrl);
 
             Map<String, Object> enriched = new HashMap<>(user);
-            enriched.put("realmRoles", roles); // clave adicional con los roles
+            enriched.put("realmRoles", roles);
             result.add(enriched);
         }
         return result;
     }
 
     // =========================================================
-    // NUEVO: Obtener roles de un usuario por keycloakId (public)
+    // Obtener roles de un usuario por keycloakId (public)
     // =========================================================
 
-    /**
-     * Retorna los nombres de los roles realm del usuario identificado
-     * por su UUID de Keycloak.
-     *
-     * Se filtran los roles internos (default-roles-*, uma_*, offline_access).
-     */
     public List<String> getUserRoles(String keycloakId) {
         String token   = getAdminToken();
         String baseUrl = serverUrl + "/admin/realms/" + realm;
@@ -221,13 +221,9 @@ public class KeycloakAdminService {
     }
 
     // =========================================================
-    // NUEVO: Obtener el keycloakId de un usuario por username (public)
+    // Obtener el keycloakId de un usuario por username (public)
     // =========================================================
 
-    /**
-     * Busca un usuario por username en el realm y retorna su UUID de Keycloak.
-     * Lanza RuntimeException si el usuario no existe.
-     */
     public String getUserKeycloakId(String username) {
         String token   = getAdminToken();
         String baseUrl = serverUrl + "/admin/realms/" + realm;
@@ -235,20 +231,9 @@ public class KeycloakAdminService {
     }
 
     // =========================================================
-    // NUEVO: Reemplazar roles de un usuario por keycloakId
+    // Reemplazar roles de un usuario por keycloakId
     // =========================================================
 
-    /**
-     * Reemplaza TODOS los roles realm del usuario identificado por su UUID.
-     *
-     * Proceso:
-     *   1. Obtener los roles actuales del usuario.
-     *   2. Eliminar todos los roles actuales.
-     *   3. Asignar los nuevos roles de la lista recibida.
-     *
-     * @param keycloakId UUID del usuario en Keycloak
-     * @param newRoles   Lista de nombres de roles a asignar (ej: ["ADMIN","DOCTOR"])
-     */
     public void updateUserRolesByKeycloakId(String keycloakId, List<String> newRoles) {
         if (newRoles == null || newRoles.isEmpty()) {
             throw new IllegalArgumentException("El usuario debe tener al menos un rol.");
@@ -257,18 +242,15 @@ public class KeycloakAdminService {
         String token   = getAdminToken();
         String baseUrl = serverUrl + "/admin/realms/" + realm;
 
-        // Paso 1: obtener roles actuales para poder eliminarlos
         List<String> currentRoleNames = getUserRoles(keycloakId, token, baseUrl);
 
         if (!currentRoleNames.isEmpty()) {
-            // Convertir los nombres a representaciones de rol que Keycloak espera
             List<Map<String, Object>> currentRoleReps = currentRoleNames.stream()
                     .map(roleName -> getRoleRepresentation(roleName, token, baseUrl))
                     .filter(r -> r != null)
                     .collect(Collectors.toList());
 
             if (!currentRoleReps.isEmpty()) {
-                // Paso 2: eliminar todos los roles actuales con DELETE
                 webClient.method(HttpMethod.DELETE)
                         .uri(baseUrl + "/users/" + keycloakId + "/role-mappings/realm")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -280,10 +262,20 @@ public class KeycloakAdminService {
             }
         }
 
-        // Paso 3: asignar los nuevos roles uno a uno
         for (String roleName : newRoles) {
             assignRoleToUser(keycloakId, roleName, token, baseUrl);
         }
+    }
+
+    // =========================================================
+    // Actualizar contraseña de un usuario por username (public)
+    // =========================================================
+
+    public void updatePassword(String username, String newPassword) {
+        String token   = getAdminToken();
+        String baseUrl = serverUrl + "/admin/realms/" + realm;
+        String userId  = getUserKeycloakId(username, token, baseUrl);
+        actualizarPasswordEnKeycloak(userId, newPassword, token, baseUrl);
     }
 
     // =========================================================
@@ -291,9 +283,58 @@ public class KeycloakAdminService {
     // =========================================================
 
     /**
-     * Versión privada de getUserRoles que reutiliza token y baseUrl
-     * ya obtenidos para evitar llamadas extra a Keycloak.
+     * BUG-FIX: Reintenta hasta 3 veces con 300ms de espera entre intentos.
+     * Keycloak puede no indexar al usuario inmediatamente después del POST /users,
+     * haciendo que un GET inmediato devuelva lista vacía y lance excepción.
      */
+    private String getUserKeycloakIdConReintento(String username, String token, String baseUrl) {
+        int maxIntentos = 3;
+        for (int intento = 1; intento <= maxIntentos; intento++) {
+            try {
+                return getUserKeycloakId(username, token, baseUrl);
+            } catch (RuntimeException ex) {
+                if (intento == maxIntentos) throw ex;
+                try { Thread.sleep(300L * intento); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw ex;
+                }
+            }
+        }
+        throw new RuntimeException("No se pudo obtener el keycloakId de '" + username + "' tras " + maxIntentos + " intentos.");
+    }
+
+    /**
+     * Actualiza la contraseña de un usuario en Keycloak usando su UUID.
+     */
+    private void actualizarPasswordEnKeycloak(String userId, String newPassword, String token, String baseUrl) {
+        Map<String, Object> credential = new HashMap<>();
+        credential.put("type",      "password");
+        credential.put("temporary", false);
+        credential.put("value",     newPassword);
+
+        try {
+            webClient.put()
+                    .uri(baseUrl + "/users/" + userId + "/reset-password")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(credential)
+                    .retrieve()
+                    .onStatus(
+                        status -> status.is4xxClientError() || status.is5xxServerError(),
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                            .map(errorBody -> new RuntimeException(
+                                "Error actualizando contraseña. Status: "
+                                + clientResponse.statusCode()
+                                + " | Body: " + errorBody))
+                    )
+                    .toBodilessEntity()
+                    .block();
+        } catch (WebClientResponseException ex) {
+            throw new RuntimeException(
+                "Error actualizando contraseña en Keycloak: " + ex.getMessage(), ex);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private List<String> getUserRoles(String keycloakId, String token, String baseUrl) {
         try {
@@ -314,7 +355,6 @@ public class KeycloakAdminService {
 
             if (roles == null) return List.of();
 
-            // Filtrar roles internos de Keycloak que no son de negocio
             return roles.stream()
                     .map(r -> (String) r.get("name"))
                     .filter(name -> name != null
@@ -329,9 +369,6 @@ public class KeycloakAdminService {
         }
     }
 
-    /**
-     * Versión privada de getUserKeycloakId reutiliza token y baseUrl.
-     */
     @SuppressWarnings("unchecked")
     private String getUserKeycloakId(String username, String token, String baseUrl) {
         List<?> users;
@@ -361,10 +398,6 @@ public class KeycloakAdminService {
         return (String) ((Map<?, ?>) users.get(0)).get("id");
     }
 
-    /**
-     * Obtiene la representación JSON completa de un rol por nombre.
-     * Retorna null si el rol no existe (no lanza excepción).
-     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> getRoleRepresentation(String roleName, String token, String baseUrl) {
         try {
@@ -382,15 +415,10 @@ public class KeycloakAdminService {
                     .bodyToMono(Map.class)
                     .block();
         } catch (Exception ex) {
-            // Si el rol no existe en el realm, lo ignoramos
             return null;
         }
     }
 
-    /**
-     * Asigna un rol al usuario. Obtiene primero la representación del rol
-     * y luego hace POST al endpoint de role-mappings.
-     */
     private void assignRoleToUser(String userId, String roleName, String token, String baseUrl) {
         Map<String, Object> role = getRoleRepresentation(roleName, token, baseUrl);
         if (role == null) {

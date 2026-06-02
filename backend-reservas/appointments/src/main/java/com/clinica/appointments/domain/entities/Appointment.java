@@ -38,6 +38,14 @@ public class Appointment {
 
     private String notes;
 
-    // motivo de cancelación ──────────────────────────────────────────
+    // motivo de cancelación
     private String cancellationReason;
+
+    // ── CAMPOS DE PRIORIDAD ─────────────────────────────────────────
+    private boolean priority = false;
+
+    /** HIGH | MEDIUM | LOW | null */
+    private String urgencyLevel;
+
+    private String priorityReason;
 }

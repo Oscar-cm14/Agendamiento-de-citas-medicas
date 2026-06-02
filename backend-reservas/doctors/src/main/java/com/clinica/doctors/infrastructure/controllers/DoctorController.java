@@ -1,6 +1,5 @@
 package com.clinica.doctors.infrastructure.controllers;
 
-
 import com.clinica.doctors.application.services.DoctorService;
 import com.clinica.shared.dto.DoctorDetailResponse;
 import com.clinica.shared.dto.DoctorRegistrationRequest;
@@ -23,8 +22,6 @@ import java.util.List;
 
 /**
  * REST Controller para gestión de médicos.
- * Solo maneja datos del médico (registro, consulta, edición).
- * Los horarios están en DoctorScheduleController.
  */
 @RestController
 @RequestMapping("/api/v1/doctors")
@@ -32,7 +29,6 @@ public class DoctorController {
 
     private final DoctorService doctorService;
 
-    
     public DoctorController(DoctorService doctorService) {
         this.doctorService = doctorService;
     }
@@ -51,14 +47,23 @@ public class DoctorController {
         return ResponseEntity.ok(doctorService.listDoctors());
     }
 
-    // GET /api/v1/doctors/me  — Médico autenticado
+    // GET /api/v1/doctors/me  — Médico autenticado (detalle completo)
     @GetMapping("/me")
     public ResponseEntity<DoctorDetailResponse> getMyDoctorProfile(
             @AuthenticationPrincipal Jwt jwt) {
         String username = jwt.getClaimAsString("preferred_username");
-        // Retorna detalle completo (incluye skills) para el panel del médico
         DoctorResponse basic = doctorService.getDoctorByUsername(username);
         return ResponseEntity.ok(doctorService.getDoctorDetailById(basic.id()));
+    }
+
+    // PUT /api/v1/doctors/me  — El médico autenticado edita SU PROPIO perfil
+    @PutMapping("/me")
+    public ResponseEntity<DoctorDetailResponse> updateMyProfile(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody DoctorUpdateRequest request) {
+        String username = jwt.getClaimAsString("preferred_username");
+        DoctorResponse basic = doctorService.getDoctorByUsername(username);
+        return ResponseEntity.ok(doctorService.updateDoctor(basic.id(), request));
     }
 
     // GET /api/v1/doctors/by-user/{userId}  — Por userId
@@ -67,20 +72,18 @@ public class DoctorController {
         return ResponseEntity.ok(doctorService.getDoctorByUserId(userId));
     }
 
-    // GET /api/v1/doctors/{id}  — Detalle completo (para formulario edición admin)
+    // GET /api/v1/doctors/{id}  — Detalle completo
     // El patrón \d+ evita colisión con /me y /by-user
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<DoctorDetailResponse> getDoctorById(@PathVariable Long id) {
         return ResponseEntity.ok(doctorService.getDoctorDetailById(id));
     }
 
-    // PUT /api/v1/doctors/{id}  — Actualizar datos del médico (admin)
+    // PUT /api/v1/doctors/{id}  — Actualizar datos del médico (solo ADMIN)
     @PutMapping("/{id}")
     public ResponseEntity<DoctorDetailResponse> updateDoctor(
             @PathVariable Long id,
             @RequestBody DoctorUpdateRequest request) {
         return ResponseEntity.ok(doctorService.updateDoctor(id, request));
     }
-
-    
 }

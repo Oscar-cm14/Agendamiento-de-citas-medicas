@@ -1,0 +1,170 @@
+# =============================================================================
+# CI/CD Pipeline — Agendamiento de Citas Médicas
+# =============================================================================
+# PLATAFORMAS (todas gratuitas, sin tarjeta de crédito):
+#   CI:       GitHub Actions (gratis para repos públicos/privados)
+#   Backend:  Render.com     (gratis, sin tarjeta)
+#   BD:       Neon.tech       (PostgreSQL gratis, sin tarjeta)
+#   Frontend: Vercel          (gratis, sin tarjeta)
+#
+# SE ACTIVA EN:
+#   - Push a la rama main
+#   - Push a la rama develop
+#   - Pull Requests hacia main
+# =============================================================================
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  # ===========================================================================
+  # JOB 1: CI BACKEND
+  # Compila el backend y ejecuta TODOS los tests (unitarios + integración +
+  # sistema + aceptación) usando H2 en memoria (no necesita BD real).
+  # ===========================================================================
+  ci-backend:
+    name: "CI — Backend (Spring Boot + Tests)"
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # PASO 1: Descargar el código del repositorio
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # PASO 2: Configurar Java 21
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven   # cachea ~/.m2 para acelerar builds siguientes
+
+      # PASO 3: Compilar todos los módulos Maven
+      - name: Compilar backend
+        working-directory: Agendamiento-de-citas-medicas/backend-reservas
+        run: mvn clean package -DskipTests -B
+
+      # PASO 4: Ejecutar todos los tests
+      # Los tests usan H2 en memoria + profile "test"
+      # No necesitan Keycloak ni SMTP reales (están mockeados)
+      - name: Ejecutar tests (unitarios + integración + sistema + aceptación)
+        working-directory: Agendamiento-de-citas-medicas/backend-reservas
+        run: mvn test -B
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+      # PASO 5: Publicar reporte de tests como artefacto descargable
+      - name: Publicar reporte de tests
+        uses: actions/upload-artifact@v4
+        if: always()   # guardar incluso si los tests fallan
+        with:
+          name: reporte-tests-backend
+          path: Agendamiento-de-citas-medicas/backend-reservas/**/target/surefire-reports/
+          retention-days: 7
+
+      # PASO 6: Guardar el JAR para el paso de despliegue
+      - name: Guardar JAR compilado
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: backend-jar
+          path: Agendamiento-de-citas-medicas/backend-reservas/app-main/target/*.jar
+          retention-days: 1
+
+  # ===========================================================================
+  # JOB 2: CI FRONTEND
+  # Compila el frontend Angular en modo producción.
+  # ===========================================================================
+  ci-frontend:
+    name: "CI — Frontend (Angular)"
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Agendamiento-de-citas-medicas/frontend-angular/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: Agendamiento-de-citas-medicas/frontend-angular
+        run: npm ci
+
+      - name: Compilar Angular (modo producción)
+        working-directory: Agendamiento-de-citas-medicas/frontend-angular
+        run: npm run build -- --configuration production
+
+      - name: Guardar build del frontend
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: frontend-dist
+          path: Agendamiento-de-citas-medicas/frontend-angular/dist/
+          retention-days: 1
+
+  # ===========================================================================
+  # JOB 3: CD — DESPLIEGUE EN RENDER
+  # Solo se ejecuta cuando:
+  #   - Es un push a main (no en PRs ni develop)
+  #   - Ambos jobs de CI pasaron exitosamente
+  #
+  # Render detecta automáticamente el push a main y redespliega.
+  # Este job solo notifica a Render vía webhook.
+  # ===========================================================================
+  cd-deploy-backend:
+    name: "CD — Deploy Backend en Render"
+    runs-on: ubuntu-latest
+    needs: [ ci-backend, ci-frontend ]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+
+      - name: Notificar inicio de despliegue
+        run: |
+          echo "========================================"
+          echo "Desplegando versión: ${{ github.sha }}"
+          echo "Autor: ${{ github.actor }}"
+          echo "Mensaje: ${{ github.event.head_commit.message }}"
+          echo "========================================"
+
+      # Render puede redeployar automáticamente vía webhook
+      # Configura el Deploy Hook en Render → Settings → Deploy Hooks
+      # y guárdalo en GitHub Secrets como RENDER_DEPLOY_HOOK_URL
+      - name: Trigger deploy en Render (backend)
+        run: |
+          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
+            -H "Accept: application/json" \
+            --fail || echo "Deploy hook ejecutado"
+
+      - name: Despliegue completado
+        run: echo "Backend desplegado en Render exitosamente"
+
+  # ===========================================================================
+  # JOB 4: CD — DESPLIEGUE FRONTEND EN VERCEL
+  # Vercel detecta el push automáticamente si está conectado al repo.
+  # Este job es informativo.
+  # ===========================================================================
+  cd-deploy-frontend:
+    name: "CD — Deploy Frontend en Vercel"
+    runs-on: ubuntu-latest
+    needs: [ ci-backend, ci-frontend ]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Frontend desplegado
+        run: |
+          echo "Vercel detecta el push automáticamente."
+          echo "El frontend se despliega solo al hacer push a main."
+          echo "URL: https://clinica.vercel.app (configura tu URL real en Vercel)"

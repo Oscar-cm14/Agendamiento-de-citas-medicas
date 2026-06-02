@@ -1,6 +1,5 @@
 package com.clinica.appointments.infrastructure.repositories;
 
-
 import com.clinica.appointments.domain.entities.Appointment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -24,4 +23,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long>,
 
     // Panel paciente: listar citas propias
     List<Appointment> findByPatientId(Long patientId);
+
+    // ── PRIORIDAD ──────────────────────────────────────────────────────
+    /** Citas prioritarias en un rango de fechas (todos los médicos) */
+    List<Appointment> findByPriorityTrueAndDateBetween(LocalDate dateFrom, LocalDate dateTo);
+
+    /** Citas prioritarias en un rango de fechas para un médico específico */
+    List<Appointment> findByPriorityTrueAndDoctorIdAndDateBetween(Long doctorId, LocalDate dateFrom, LocalDate dateTo);
 }

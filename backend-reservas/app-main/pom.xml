@@ -12,6 +12,8 @@
     <artifactId>app-main</artifactId>
 
     <dependencies>
+
+        <!-- ── Módulos internos ──────────────────────────────────── -->
         <dependency>
             <groupId>com.clinica</groupId>
             <artifactId>shared</artifactId>
@@ -32,19 +34,23 @@
             <artifactId>appointments</artifactId>
             <version>${project.version}</version>
         </dependency>
- <dependency>
+
+        <!-- ── Base de datos ────────────────────────────────────── -->
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <!-- sin scope runtime para que también esté disponible en tests -->
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- ── Web / Seguridad ──────────────────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -54,6 +60,40 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!--  DEPENDENCIAS DE TEST                                  -->
+        <!--  scope=test → solo se usan al correr mvn test          -->
+        <!--  No se incluyen en el JAR de producción               -->
+        <!-- ══════════════════════════════════════════════════════ -->
+
+        <!-- Spring Boot Test: @SpringBootTest, MockMvc, @AutoConfigureMockMvc -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Security Test: soporte para @WithMockUser y pruebas de seguridad -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ── Monitoreo: Spring Boot Actuator ──────────────────────────── -->
+        <!-- Expone endpoints de salud, métricas e info del sistema         -->
+        <!-- /actuator/health  → estado del backend                         -->
+        <!-- /actuator/metrics → métricas JVM y HTTP                        -->
+        <!-- /actuator/info    → versión y datos de la app                  -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- H2 en scope test para la BD en memoria de los tests -->
+        <!-- (ya incluido arriba sin scope, por lo que está disponible en test también) -->
+
     </dependencies>
 
 </project>
