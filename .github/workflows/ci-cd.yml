@@ -30,7 +30,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Verificar estructura del repositorio para debug
       - name: Mostrar estructura
         run: ls -la
 
@@ -67,7 +66,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # Sin cache: evita el error de package-lock.json no encontrado
+
+      - name: Limpiar cache npm
+        working-directory: frontend-angular
+        run: npm cache clean --force
 
       - name: Instalar dependencias
         working-directory: frontend-angular
