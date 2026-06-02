@@ -7,6 +7,6 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8080/api/v1',
+  apiUrl: 'https://agendamiento-de-citas-medicas.onrender.com/api/v1',
   keycloakUrl: 'http://localhost:8081'
 };
