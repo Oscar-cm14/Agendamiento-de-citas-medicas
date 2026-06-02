@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,7 +43,7 @@ class DoctorServiceImplTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private KeycloakAdminService keycloakAdminService; // ← CORRECCIÓN
+    private KeycloakAdminService keycloakAdminService;
 
     @InjectMocks
     private DoctorServiceImpl doctorService;
@@ -53,8 +54,15 @@ class DoctorServiceImplTest {
     @BeforeEach
     void setUp() {
         request = new DoctorRegistrationRequest(
-                "0987654321", "Gregory", "House", "1234567890", "house@example.com",
-                "Diagnostician", "MED-111", "drhouse", "vicodin"
+                "0987654321",        // identification
+                "Gregory",           // firstName
+                "House",             // lastName
+                "house@example.com", // email  ← orden correcto según el record
+                "1234567890",        // phone  ← orden correcto según el record
+                "Diagnostician",     // specialty
+                "MED-111",           // licenseNumber
+                "drhouse",           // username
+                "vicodin"            // password
         );
 
         mockDoctor = new Doctor();
