@@ -1,51 +1,114 @@
-
-
 package com.clinica.users.infrastructure.controllers;
 
 import com.clinica.shared.domain.entities.Person;
+import com.clinica.shared.dto.LoginRequest;
 import com.clinica.shared.dto.UserRolesRequest;
 import com.clinica.shared.dto.UserSummaryResponse;
 import com.clinica.shared.infrastructure.keycloak.KeycloakAdminService;
+import com.clinica.users.application.services.PatientService;
 import com.clinica.users.domain.entities.User;
 import com.clinica.users.infrastructure.repositories.PersonRepository;
 import com.clinica.users.infrastructure.repositories.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
-/**
- * REST Controller para gestión de usuarios.
- */
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
 
+    @Value("${keycloak.admin.server-url}")
+    private String serverUrl;
+
+    @Value("${keycloak.admin.realm}")
+    private String realm;
+
+    @Value("${keycloak.client-id:clinica-frontend}")
+    private String clientId;
+
     private final UserRepository       userRepository;
     private final PersonRepository     personRepository;
     private final KeycloakAdminService keycloakAdminService;
+    private final PatientService       patientService;
+    private final WebClient            webClient;
+    private final ObjectMapper         objectMapper = new ObjectMapper();
 
     public UserController(UserRepository userRepository,
                           PersonRepository personRepository,
-                          KeycloakAdminService keycloakAdminService) {
+                          KeycloakAdminService keycloakAdminService,
+                          PatientService patientService,
+                          WebClient.Builder webClientBuilder) {
         this.userRepository       = userRepository;
         this.personRepository     = personRepository;
         this.keycloakAdminService = keycloakAdminService;
+        this.patientService       = patientService;
+        this.webClient            = webClientBuilder.build();
     }
 
     // ─────────────────────────────────────────────────────────
-    // GET /api/v1/users/me  — Usuario autenticado 
+    // POST /api/v1/users/login  — Login (proxy a Keycloak)
+    // ─────────────────────────────────────────────────────────
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("client_id",  clientId);
+        body.add("grant_type", "password");
+        body.add("username",   request.username());
+        body.add("password",   request.password());
+
+        Map<?, ?> keycloakResponse;
+        try {
+            keycloakResponse = webClient.post()
+                    .uri(serverUrl + "/realms/" + realm
+                         + "/protocol/openid-connect/token")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(BodyInserters.fromFormData(body))
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+        } catch (WebClientResponseException ex) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "Usuario o contraseña incorrectos"));
+        } catch (Exception ex) {
+            return ResponseEntity.status(503)
+                    .body(Map.of("error", "Keycloak no disponible: " + ex.getMessage()));
+        }
+
+        if (keycloakResponse == null || !keycloakResponse.containsKey("access_token")) {
+            return ResponseEntity.status(500).body(Map.of("error", "Error de autenticación"));
+        }
+
+        String token = (String) keycloakResponse.get("access_token");
+        String role  = extraerRol(token);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("token",    token);
+        result.put("role",     role);
+        result.put("username", request.username());
+
+        if ("PATIENT".equals(role)) {
+            patientService.findByUsername(request.username())
+                    .ifPresent(p -> result.put("userId", p.id()));
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // GET /api/v1/users/me  — Usuario autenticado
     // ─────────────────────────────────────────────────────────
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> getCurrentUser() {
@@ -107,20 +170,14 @@ public class UserController {
         }
 
         return ResponseEntity.status(404).body(
-            Map.of("error", "Usuario no encontrado en la base de datos local para: "
-                + username + " / " + email));
+            Map.of("error", "Usuario no encontrado: " + username + " / " + email));
     }
 
     // ─────────────────────────────────────────────────────────
-    // GET /api/v1/users  — Listar todos los usuarios
-    //
-    //  se filtran los usuarios cuyo localId == -1
-    // (existen en Keycloak pero no en H2). Sin este filtro, el
-    // frontend llama a GET /users/-1/roles y recibe 500 / 401.
+    // GET /api/v1/users  — Listar todos
     // ─────────────────────────────────────────────────────────
     @GetMapping
     public ResponseEntity<List<UserSummaryResponse>> listUsers() {
-
         List<Map<String, Object>> keycloakUsers = keycloakAdminService.listUsersWithRoles();
 
         List<UserSummaryResponse> result = keycloakUsers.stream()
@@ -133,23 +190,14 @@ public class UserController {
                     @SuppressWarnings("unchecked")
                     List<String> roles = (List<String>) ku.getOrDefault("realmRoles", List.of());
 
-                    // Buscar ID local; -1 si no existe en H2
                     Long localId = userRepository.findByUsername(kcUsername)
                             .map(User::getId)
                             .orElse(-1L);
 
-                    return new UserSummaryResponse(
-                            localId,
-                            kcUsername,
-                            (firstName + " " + lastName).trim(),
-                            kcEmail,
-                            roles
-                    );
+                    return new UserSummaryResponse(localId, kcUsername,
+                            (firstName + " " + lastName).trim(), kcEmail, roles);
                 })
-                // Excluir cuentas de servicio internas de Keycloak
                 .filter(u -> !u.username().startsWith("service-account-"))
-                // CORRECCIÓN: excluir usuarios que no existen en H2 (localId == -1)
-                // Para que el frontend no intente GET /users/-1/roles → 500/401
                 .filter(u -> u.id() != null && u.id() > 0)
                 .toList();
 
@@ -157,9 +205,7 @@ public class UserController {
     }
 
     // ─────────────────────────────────────────────────────────
-    // GET /api/v1/users/{id}/roles  — Obtener roles de un usuario
-    // Sin cambios en la lógica; el filtro de listUsers() previene
-    // que llegue aquí con id == -1.
+    // GET /api/v1/users/{id}/roles
     // ─────────────────────────────────────────────────────────
     @GetMapping("/{id}/roles")
     public ResponseEntity<List<String>> getUserRoles(@PathVariable String id) {
@@ -168,7 +214,7 @@ public class UserController {
     }
 
     // ─────────────────────────────────────────────────────────
-    // PUT /api/v1/users/{id}/roles  — Actualizar roles de un usuario
+    // PUT /api/v1/users/{id}/roles
     // ─────────────────────────────────────────────────────────
     @PutMapping("/{id}/roles")
     public ResponseEntity<Void> updateUserRoles(
@@ -178,7 +224,6 @@ public class UserController {
         if (request.roles() == null || request.roles().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-
         String keycloakId = resolveKeycloakId(id);
         keycloakAdminService.updateUserRolesByKeycloakId(keycloakId, request.roles());
         return ResponseEntity.ok().build();
@@ -188,38 +233,41 @@ public class UserController {
     // Helpers privados
     // =========================================================
 
-    /**
-     * Resuelve el keycloakId a partir del {id} recibido en la URL.
-     *
-     * CORRECCIÓN: si el id numérico es negativo (< 0) se lanza una
-     * excepción descriptiva en lugar de buscar un ID inválido en Keycloak,
-     * lo que antes causaba un 500 incomprensible.
-     */
+    @SuppressWarnings("unchecked")
+    private String extraerRol(String jwt) {
+        try {
+            String[] parts   = jwt.split("\\.");
+            String   payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+            Map<String, Object> claims      = objectMapper.readValue(payload, Map.class);
+            Map<String, Object> realmAccess = (Map<String, Object>) claims.get("realm_access");
+            if (realmAccess != null) {
+                List<String> roles = (List<String>) realmAccess.get("roles");
+                if (roles != null) {
+                    if (roles.contains("ADMIN"))     return "ADMIN";
+                    if (roles.contains("DOCTOR"))    return "DOCTOR";
+                    if (roles.contains("SCHEDULER")) return "SCHEDULER";
+                    if (roles.contains("PATIENT"))   return "PATIENT";
+                }
+            }
+        } catch (Exception ignored) { }
+        return "PATIENT";
+    }
+
     private String resolveKeycloakId(String id) {
         try {
             Long localId = Long.parseLong(id);
-
-            // CORRECCIÓN: rechazar IDs negativos (usuario no sincronizado con H2)
-            if (localId < 0) {
-                throw new RuntimeException(
-                    "El usuario con id=" + localId
-                    + " no está sincronizado en la base de datos local. "
-                    + "No se puede obtener su keycloakId.");
-            }
-
+            if (localId < 0) throw new RuntimeException(
+                "Usuario id=" + localId + " no sincronizado con H2.");
             User user = userRepository.findById(localId)
-                    .orElseThrow(() -> new RuntimeException(
-                        "Usuario no encontrado con id local: " + localId));
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + localId));
             return keycloakAdminService.getUserKeycloakId(user.getUsername());
-
         } catch (NumberFormatException ignored) {
-            // No es un número: se asume que ya es un UUID de Keycloak
             return id;
         }
     }
 
-    private static String nvl(String s)          { return s != null ? s.trim() : ""; }
-    private static String stripDomain(String s)  { return s.contains("@") ? s.substring(0, s.indexOf('@')) : s; }
+    private static String nvl(String s)         { return s != null ? s.trim() : ""; }
+    private static String stripDomain(String s) { return s.contains("@") ? s.substring(0, s.indexOf('@')) : s; }
 
     private static boolean matches(String candidate, String u1, String u2, String u3,
                                    String u1ND, String u2ND, String u3ND) {

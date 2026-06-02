@@ -8,6 +8,8 @@ import com.clinica.users.application.services.SchedulerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,16 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * REST Controller para gestión de agendadores.
- *
- * CAMBIOS respecto a la versión original (solo tenía POST /register):
- *  - GET /            → NUEVO: lista todos los agendadores con detalle completo.
- *  - GET /{id}        → NUEVO: detalle de un agendador por ID.
- *  - PUT /{id}        → NUEVO: actualiza los datos de un agendador existente.
- *
- * El endpoint POST /register se conserva sin cambios.
- */
 @RestController
 @RequestMapping("/api/v1/schedulers")
 public class SchedulerController {
@@ -38,37 +30,44 @@ public class SchedulerController {
         this.schedulerService = schedulerService;
     }
 
-    // ─────────────────────────────────────────────────────────
-    // POST /api/v1/schedulers/register  — Registrar (sin cambios)
-    // ─────────────────────────────────────────────────────────
+    // POST /register — Registrar agendador (público)
     @PostMapping("/register")
     public ResponseEntity<SchedulerResponse> registerScheduler(
             @Valid @RequestBody SchedulerRegistrationRequest request) {
         return new ResponseEntity<>(schedulerService.registerScheduler(request), HttpStatus.CREATED);
     }
 
-    // ─────────────────────────────────────────────────────────
-    // GET /api/v1/schedulers  — NUEVO: lista todos los agendadores
-    // Solo ADMIN (agregar hasRole("ADMIN") en SecurityConfig).
-    // ─────────────────────────────────────────────────────────
+    // GET / — Listar todos (solo ADMIN)
     @GetMapping
     public ResponseEntity<List<SchedulerDetailResponse>> listSchedulers() {
         return ResponseEntity.ok(schedulerService.listSchedulers());
     }
 
-    // ─────────────────────────────────────────────────────────
-    // GET /api/v1/schedulers/{id}  — NUEVO: detalle de un agendador
-    // ─────────────────────────────────────────────────────────
+    // GET /me — Agendador autenticado ve su propio perfil
+    @GetMapping("/me")
+    public ResponseEntity<SchedulerDetailResponse> getMyProfile(
+            @AuthenticationPrincipal Jwt jwt) {
+        String username = jwt.getClaimAsString("preferred_username");
+        return ResponseEntity.ok(schedulerService.getSchedulerByUsername(username));
+    }
+
+    // PUT /me — Agendador autenticado edita su propio perfil
+    @PutMapping("/me")
+    public ResponseEntity<SchedulerDetailResponse> updateMyProfile(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody SchedulerUpdateRequest request) {
+        String username = jwt.getClaimAsString("preferred_username");
+        SchedulerDetailResponse current = schedulerService.getSchedulerByUsername(username);
+        return ResponseEntity.ok(schedulerService.updateScheduler(current.id(), request));
+    }
+
+    // GET /{id} — Detalle por ID (solo ADMIN)
     @GetMapping("/{id}")
     public ResponseEntity<SchedulerDetailResponse> getSchedulerById(@PathVariable Long id) {
         return ResponseEntity.ok(schedulerService.getSchedulerDetailById(id));
     }
 
-    // ─────────────────────────────────────────────────────────
-    // PUT /api/v1/schedulers/{id}  — NUEVO: actualizar agendador
-    // Partial update: solo se modifican los campos no-nulos.
-    // Requiere rol ADMIN (agregar en SecurityConfig).
-    // ─────────────────────────────────────────────────────────
+    // PUT /{id} — Actualizar por ID (solo ADMIN)
     @PutMapping("/{id}")
     public ResponseEntity<SchedulerDetailResponse> updateScheduler(
             @PathVariable Long id,

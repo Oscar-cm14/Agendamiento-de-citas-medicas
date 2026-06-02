@@ -25,5 +25,10 @@ public record AppointmentRequest(
         @NotNull(message = "La hora es obligatoria")
         LocalTime startTime,
 
-        String notes
+        String notes,
+
+        // ── CAMPOS DE PRIORIDAD (opcionales) ─────────────────────────
+        Boolean priority,
+        String priorityReason,
+        String urgencyLevel
 ) {}

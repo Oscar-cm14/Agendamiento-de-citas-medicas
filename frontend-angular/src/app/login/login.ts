@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -15,210 +16,54 @@ export class Login {
 
   username = '';
   password = '';
-  error = '';
+  error    = '';
   cargando = false;
 
-  private keycloakUrl =
-    'http://localhost:8081/realms/clinica-realm/protocol/openid-connect/token';
+  private apiUrl = environment.apiUrl;
 
-  private clientId = 'clinica-frontend';
-
-  private apiUrl = 'http://localhost:8080/api/v1';
-
-  constructor(
-    private http: HttpClient,
-    private router: Router
-  ) {}
+  constructor(private http: HttpClient, private router: Router) {}
 
   iniciarSesion() {
-
     if (!this.username || !this.password) {
       this.error = 'Complete todos los campos';
       return;
     }
 
     this.cargando = true;
-    this.error = '';
-
-    const body = new HttpParams()
-      .set('client_id', this.clientId)
-      .set('grant_type', 'password')
-      .set('username', this.username)
-      .set('password', this.password);
-
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded'
-    });
+    this.error    = '';
 
     this.http.post<any>(
-      this.keycloakUrl,
-      body.toString(),
-      { headers }
+      `${this.apiUrl}/users/login`,
+      { username: this.username, password: this.password }
     ).subscribe({
 
       next: (res) => {
-
-        try {
-
-          const token = res.access_token;
-
-          localStorage.setItem('token', token);
-
-          const payload =
-            JSON.parse(atob(token.split('.')[1]));
-
-          const roles =
-            payload.realm_access?.roles || [];
-
-          let role = 'PATIENT';
-
-          if (roles.includes('ADMIN')) {
-            role = 'ADMIN';
-          }
-          else if (roles.includes('DOCTOR')) {
-            role = 'DOCTOR';
-          }
-          else if (roles.includes('SCHEDULER')) {
-            role = 'SCHEDULER';
-          }
-
-          localStorage.setItem('role', role);
-          localStorage.setItem('username', this.username);
-
-          const authHeaders = new HttpHeaders({
-            Authorization: `Bearer ${token}`
-          });
-
-          // =====================================================
-          // OBTENER PACIENTE POR USERNAME
-          // =====================================================
-
-          if (role === 'PATIENT') {
-
-            this.http.get<any>(
-              `${this.apiUrl}/patients/by-username?username=${this.username}`,
-              { headers: authHeaders }
-            ).subscribe({
-
-              next: (patient) => {
-
-                if (patient && patient.id) {
-
-                  localStorage.setItem(
-                    'userId',
-                    String(patient.id)
-                  );
-
-                }
-
-                this.cargando = false;
-
-                this.redirigirSegunRol(role);
-
-              },
-
-              error: (err) => {
-
-                console.error(
-                  'Error obteniendo paciente',
-                  err
-                );
-
-                this.cargando = false;
-
-                this.redirigirSegunRol(role);
-
-              }
-
-            });
-
-          }
-          else {
-
-            this.cargando = false;
-
-            this.redirigirSegunRol(role);
-
-          }
-
+        localStorage.setItem('token',    res.token);
+        localStorage.setItem('role',     res.role);
+        localStorage.setItem('username', res.username ?? this.username);
+        if (res.userId != null) {
+          localStorage.setItem('userId', String(res.userId));
         }
-        catch (e) {
-
-          console.error(
-            'Error parseando token',
-            e
-          );
-
-          this.cargando = false;
-
-          this.error = 'Error procesando autenticación';
-
-        }
-
+        this.cargando = false;
+        this.redirigirSegunRol(res.role);
       },
 
       error: (err) => {
-
         this.cargando = false;
-
-        if (err.status === 0) {
-
-          this.error =
-            'No se puede conectar a Keycloak';
-
-        }
-        else if (
-          err.status === 401
-          ||
-          err.status === 400
-        ) {
-
-          this.error =
-            'Usuario o contraseña incorrectos';
-
-        }
-        else {
-
-          this.error =
-            'Error '
-            + err.status
-            + ': '
-            + (
-              err.error?.error_description
-              ||
-              'Acceso denegado'
-            );
-
-        }
-
+        if      (err.status === 0)   this.error = 'No se puede conectar al servidor';
+        else if (err.status === 401) this.error = 'Usuario o contraseña incorrectos';
+        else if (err.status === 503) this.error = 'Keycloak no está disponible';
+        else                         this.error = err.error?.error ?? 'Error al iniciar sesión';
       }
-
     });
-
   }
 
   private redirigirSegunRol(role: string) {
-
     switch (role) {
-
-      case 'ADMIN':
-        this.router.navigate(['/admin']);
-        break;
-
-      case 'SCHEDULER':
-        this.router.navigate(['/agendador']);
-        break;
-
-      case 'DOCTOR':
-        this.router.navigate(['/medico']);
-        break;
-
-      default:
-        this.router.navigate(['/agendar']);
-
+      case 'ADMIN':     this.router.navigate(['/admin']);     break;
+      case 'SCHEDULER': this.router.navigate(['/agendador']); break;
+      case 'DOCTOR':    this.router.navigate(['/medico']);    break;
+      default:          this.router.navigate(['/agendar']);
     }
-
   }
-
 }
-

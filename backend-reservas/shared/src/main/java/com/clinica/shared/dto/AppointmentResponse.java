@@ -17,6 +17,10 @@ public record AppointmentResponse(
         LocalTime endTime,
         AppointmentStatus status,
         String notes,
-        // ── NUEVO ──
-        String cancellationReason
+        String cancellationReason,
+
+        // ── CAMPOS DE PRIORIDAD ─────────────────────────────────────
+        boolean priority,
+        String urgencyLevel,
+        String priorityReason
 ) {}

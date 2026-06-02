@@ -10,6 +10,7 @@ import { AuthService } from '../services/auth.service';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Router , RouterLink } from '@angular/router';
 import { ChangeDetectorRef } from '@angular/core';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-agendar-cita',
@@ -74,7 +75,7 @@ export class AgendarCita implements OnInit {
 
   cargandoMedicoDetalle = false;
 
-  private apiUrl = 'http://localhost:8080/api/v1';
+  private apiUrl = environment.apiUrl;
 
   constructor(
     private appointmentService: AppointmentService,

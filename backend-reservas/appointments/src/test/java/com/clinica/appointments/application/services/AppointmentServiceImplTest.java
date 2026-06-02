@@ -58,6 +58,10 @@ class AppointmentServiceImplTest {
     @Mock
     private AppointmentHistoryRepository appointmentHistoryRepository;
 
+    // ── NUEVO: mock requerido por AppointmentServiceImpl ──
+    @Mock
+    private NotificationService notificationService;
+
     @InjectMocks
     private AppointmentServiceImpl appointmentService;
 
@@ -67,19 +71,25 @@ class AppointmentServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // Se agregan null para los 3 nuevos campos opcionales: priority, priorityReason, urgencyLevel
         validRequest = new AppointmentRequest(
                 1L,
                 2L,
                 LocalDate.of(2026, 3, 22),
                 LocalTime.of(10, 0),
-                "Reserva de control"
+                "Reserva de control",
+                null,
+                null,
+                null
         );
 
+        // Doctor con especialidad "Consulta General" para evitar la regla de negocio
+        // que exige consulta general previa
         mockDoctor = new Doctor();
         mockDoctor.setId(1L);
         mockDoctor.setFirstName("Juan");
         mockDoctor.setLastName("Pérez");
-        mockDoctor.setSpecialty("Cardiología");
+        mockDoctor.setSpecialty("Consulta General");
 
         mockPatient = new Patient();
         mockPatient.setId(2L);
@@ -95,6 +105,7 @@ class AppointmentServiceImplTest {
         when(patientRepository.findById(2L)).thenReturn(Optional.of(mockPatient));
         when(appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                 1L, LocalDate.of(2026, 3, 22), LocalTime.of(10, 0))).thenReturn(false);
+        when(appointmentRepository.findByPatientId(2L)).thenReturn(java.util.Collections.emptyList());
         when(doctorScheduleRepository.findByDoctorId(1L)).thenReturn(Optional.empty());
 
         Appointment savedAppointment = new Appointment();
@@ -117,10 +128,9 @@ class AppointmentServiceImplTest {
         assertEquals(100L, response.id());
         assertEquals("Juan Pérez", response.doctorName());
         assertEquals("María Gómez", response.patientName());
-        assertEquals("Cardiología", response.specialty());
+        assertEquals("Consulta General", response.specialty());
         assertEquals(AppointmentStatus.SCHEDULED, response.status());
 
-        // Verificar que el repositorio fue llamado exactamente una vez
         verify(appointmentRepository).save(any(Appointment.class));
     }
 
@@ -137,8 +147,6 @@ class AppointmentServiceImplTest {
         });
 
         assertEquals("Paciente no encontrado", exception.getMessage());
-        
-        // Verificar que NUNCA se intentó guardar en base de datos
         verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 
@@ -157,8 +165,6 @@ class AppointmentServiceImplTest {
         });
 
         assertEquals("Ya existe una cita en esa franja horaria", exception.getMessage());
-        
-        // Verificar que no se guardó la cita en bd
         verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 
@@ -170,12 +176,14 @@ class AppointmentServiceImplTest {
         app.setId(10L);
         app.setDoctorId(1L);
         app.setPatientId(2L);
-        when(appointmentRepository.findByDoctorIdAndDate(1L, LocalDate.of(2026, 3, 22))).thenReturn(java.util.List.of(app));
+        when(appointmentRepository.findByDoctorIdAndDate(1L, LocalDate.of(2026, 3, 22)))
+                .thenReturn(java.util.List.of(app));
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(mockDoctor));
         when(patientRepository.findById(2L)).thenReturn(Optional.of(mockPatient));
 
         // Act
-        java.util.List<AppointmentResponse> list = appointmentService.listAppointmentsByDoctorAndDate(1L, LocalDate.of(2026, 3, 22));
+        java.util.List<AppointmentResponse> list =
+                appointmentService.listAppointmentsByDoctorAndDate(1L, LocalDate.of(2026, 3, 22));
 
         // Assert
         assertEquals(1, list.size());
@@ -209,7 +217,8 @@ class AppointmentServiceImplTest {
     void getAvailableSlots_WithSchedule() {
         // Arrange
         LocalDate date = LocalDate.of(2026, 3, 23); // Monday
-        com.clinica.doctors.domain.entities.DoctorSchedule schedule = new com.clinica.doctors.domain.entities.DoctorSchedule();
+        com.clinica.doctors.domain.entities.DoctorSchedule schedule =
+                new com.clinica.doctors.domain.entities.DoctorSchedule();
         schedule.setWorkingDays(java.util.Set.of(date.getDayOfWeek()));
         schedule.setStartTime(LocalTime.of(8, 0));
         schedule.setEndTime(LocalTime.of(9, 0));
@@ -222,14 +231,15 @@ class AppointmentServiceImplTest {
                 1L, date, LocalTime.of(8, 30))).thenReturn(true);
 
         // Act
-        java.util.List<com.clinica.shared.dto.AvailableSlotResponse> slots = appointmentService.getAvailableSlots(1L, date);
+        java.util.List<com.clinica.shared.dto.AvailableSlotResponse> slots =
+                appointmentService.getAvailableSlots(1L, date);
 
         // Assert
         assertEquals(2, slots.size());
         assertEquals(LocalTime.of(8, 0), slots.get(0).startTime());
-        assertEquals(true, slots.get(0).available()); // First slot is available
+        assertEquals(true, slots.get(0).available());
         assertEquals(LocalTime.of(8, 30), slots.get(1).startTime());
-        assertEquals(false, slots.get(1).available()); // Second slot is occupied
+        assertEquals(false, slots.get(1).available());
     }
 
     @Test
@@ -255,34 +265,36 @@ class AppointmentServiceImplTest {
         when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(existingAppointment));
         when(appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                 1L, LocalDate.of(2026, 4, 10), LocalTime.of(14, 0))).thenReturn(false);
-        when(doctorScheduleRepository.findByDoctorId(1L)).thenReturn(Optional.empty()); // Default 30 mins
-        
-        // Mock SecurityContext with real Authentication
-        Authentication authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("testUser", "password", java.util.Collections.emptyList());
-        SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+        when(doctorScheduleRepository.findByDoctorId(1L)).thenReturn(Optional.empty());
+
+        Authentication authentication = new org.springframework.security.authentication
+                .UsernamePasswordAuthenticationToken(
+                "testUser", "password", java.util.Collections.emptyList());
+        SecurityContext securityContext =
+                org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
 
-        when(appointmentHistoryRepository.save(any(AppointmentHistory.class))).thenAnswer(i -> i.getArgument(0));
-        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArgument(0));
-        
-        // Mocks para toResponse()
+        when(appointmentHistoryRepository.save(any(AppointmentHistory.class)))
+                .thenAnswer(i -> i.getArgument(0));
+        when(appointmentRepository.save(any(Appointment.class)))
+                .thenAnswer(i -> i.getArgument(0));
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(mockDoctor));
         when(patientRepository.findById(2L)).thenReturn(Optional.of(mockPatient));
 
         // Act
-        AppointmentResponse response = appointmentService.rescheduleAppointment(appointmentId, rescheduleRequest);
+        AppointmentResponse response =
+                appointmentService.rescheduleAppointment(appointmentId, rescheduleRequest);
 
         // Assert
         assertNotNull(response);
         assertEquals(LocalDate.of(2026, 4, 10), response.date());
         assertEquals(LocalTime.of(14, 0), response.startTime());
         assertEquals(LocalTime.of(14, 30), response.endTime());
-        
+
         verify(appointmentHistoryRepository).save(any(AppointmentHistory.class));
         verify(appointmentRepository).save(any(Appointment.class));
-        
-        // Clear SecurityContext
+
         SecurityContextHolder.clearContext();
     }
 
@@ -303,7 +315,8 @@ class AppointmentServiceImplTest {
         existingAppointment.setDate(LocalDate.of(2026, 3, 22));
         existingAppointment.setStartTime(LocalTime.of(10, 0));
 
-        when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(existingAppointment));
+        when(appointmentRepository.findById(appointmentId))
+                .thenReturn(Optional.of(existingAppointment));
         when(appointmentRepository.existsByDoctorIdAndDateAndStartTime(
                 1L, LocalDate.of(2026, 4, 10), LocalTime.of(14, 0))).thenReturn(true);
 
@@ -313,7 +326,6 @@ class AppointmentServiceImplTest {
         });
 
         assertEquals("Ya existe una cita en esa franja horaria para el médico", exception.getMessage());
-        
         verify(appointmentHistoryRepository, never()).save(any(AppointmentHistory.class));
     }
 }
