@@ -21,7 +21,7 @@ services:
     plan: free               # plan gratuito de Render
 
     # Directorio del backend dentro del repositorio
-    rootDir: Agendamiento-de-citas-medicas/backend-reservas
+    rootDir: backend-reservas
 
     # Comando para compilar el proyecto
     buildCommand: mvn clean package -DskipTests -B
@@ -41,6 +41,10 @@ services:
         sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
+
+      # ── Driver PostgreSQL ──────────────────────────────────────────────────
+      - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: org.postgresql.Driver
 
       # ── JPA ────────────────────────────────────────────────────────────────
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
@@ -92,7 +96,7 @@ services:
     name: clinica-keycloak
     runtime: docker
     plan: free
-    rootDir: Agendamiento-de-citas-medicas
+    rootDir: .
 
     # Usa la imagen oficial de Keycloak
     dockerfilePath: ./keycloak/Dockerfile
