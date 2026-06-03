@@ -6,6 +6,7 @@ import com.clinica.shared.domain.exceptions.UsernameAlreadyExistsException;
 import com.clinica.shared.dto.SchedulerRegistrationRequest;
 import com.clinica.shared.dto.SchedulerResponse;
 import com.clinica.shared.domain.entities.Person;
+import com.clinica.shared.infrastructure.keycloak.KeycloakAdminService;
 import com.clinica.users.domain.entities.Scheduler;
 import com.clinica.users.domain.entities.User;
 import com.clinica.users.infrastructure.repositories.PersonRepository;
@@ -40,6 +41,9 @@ class SchedulerServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock                                          // ← ESTO FALTABA
+    private KeycloakAdminService keycloakAdminService;
+
     @InjectMocks
     private SchedulerServiceImpl schedulerService;
 
@@ -69,6 +73,9 @@ class SchedulerServiceImplTest {
 
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
+        // keycloakAdminService.createUser() no necesita stub porque
+        // el mock hace doNothing() por defecto en métodos void
+
         SchedulerResponse response = schedulerService.registerScheduler(request);
 
         assertNotNull(response);
@@ -76,25 +83,31 @@ class SchedulerServiceImplTest {
         assertEquals("Jane Smith", response.fullName());
         assertEquals("janesmith", response.username());
         verify(userRepository).save(any(User.class));
+        verify(keycloakAdminService).createUser(   // ← verificar que se llamó
+                eq("janesmith"), eq("securepass"),
+                eq("jane@example.com"), eq("Jane"), eq("Smith"), eq("SCHEDULER")
+        );
     }
 
     @Test
     void registerScheduler_UsernameExists_ThrowsException() {
         when(userRepository.findByUsername(request.username())).thenReturn(Optional.of(new User()));
 
-        assertThrows(UsernameAlreadyExistsException.class, () -> schedulerService.registerScheduler(request));
+        assertThrows(UsernameAlreadyExistsException.class,
+                () -> schedulerService.registerScheduler(request));
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void registerScheduler_IdentificationExists_ThrowsException() {
         when(userRepository.findByUsername(request.username())).thenReturn(Optional.empty());
-        
-        // Mock Person for repository return
-        Person existingPerson = new Scheduler();
-        when(personRepository.findByIdentification(request.identification())).thenReturn(Optional.of(existingPerson));
 
-        assertThrows(IdentificationAlreadyExistsException.class, () -> schedulerService.registerScheduler(request));
+        Person existingPerson = new Scheduler();
+        when(personRepository.findByIdentification(request.identification()))
+                .thenReturn(Optional.of(existingPerson));
+
+        assertThrows(IdentificationAlreadyExistsException.class,
+                () -> schedulerService.registerScheduler(request));
         verify(userRepository, never()).save(any(User.class));
     }
 }

@@ -1,10 +1,10 @@
 package com.clinica.users.application.services;
 
-import com.clinica.shared.domain.UserRole;
 import com.clinica.shared.domain.exceptions.UsernameAlreadyExistsException;
 import com.clinica.shared.dto.PatientDetailResponse;
 import com.clinica.shared.dto.PatientRegistrationRequest;
 import com.clinica.shared.dto.PatientResponse;
+import com.clinica.shared.infrastructure.keycloak.KeycloakAdminService;
 import com.clinica.users.domain.entities.Patient;
 import com.clinica.users.domain.entities.User;
 import com.clinica.users.infrastructure.repositories.PatientRepository;
@@ -41,6 +41,9 @@ class PatientServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private KeycloakAdminService keycloakAdminService;
+
     @InjectMocks
     private PatientServiceImpl patientService;
 
@@ -51,8 +54,15 @@ class PatientServiceImplTest {
     @BeforeEach
     void setUp() {
         request = new PatientRegistrationRequest(
-                "1234567890", "John", "Doe", "0987654321",
-                "Hombre", LocalDate.of(1990, 1, 1), "john@example.com", "johndoe", "password123"
+                "1234567890",
+                "John",
+                "Doe",
+                "0987654321",
+                "Hombre",
+                LocalDate.of(1990, 1, 1),
+                "john@example.com",
+                "johndoe",
+                "password123"
         );
 
         existingPatient = new Patient();
@@ -70,12 +80,19 @@ class PatientServiceImplTest {
 
     @Test
     void registerPatient_NewPatient_Success() {
-        when(patientRepository.findByIdentification(request.identification())).thenReturn(Optional.empty());
-        when(userRepository.findByUsername(request.username())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(request.password())).thenReturn("encodedPassword");
+        when(patientRepository.findByIdentification(request.identification()))
+                .thenReturn(Optional.empty());
+        when(userRepository.findByUsername(request.username()))
+                .thenReturn(Optional.empty());
+        when(passwordEncoder.encode(request.password()))
+                .thenReturn("encodedPassword");
+        doNothing().when(keycloakAdminService).createUser(
+                any(), any(), any(), any(), any(), any()
+        );
 
         User savedUser = new User();
         savedUser.setUsername("johndoe");
+
         Patient newPatient = new Patient();
         newPatient.setId(2L);
         newPatient.setFirstName("John");
@@ -96,10 +113,26 @@ class PatientServiceImplTest {
 
     @Test
     void registerPatient_ExistingPatient_ReturnsExisting() {
-        when(patientRepository.findByIdentification(request.identification())).thenReturn(Optional.of(existingPatient));
-        when(userRepository.findAll()).thenReturn(List.of(existingUser));
 
-        PatientResponse response = patientService.registerPatient(request);
+        // Sin contraseña → solo retorna el existente, no actualiza nada
+        PatientRegistrationRequest requestSinPassword = new PatientRegistrationRequest(
+                "1234567890",
+                "John",
+                "Doe",
+                "0987654321",
+                "Hombre",
+                LocalDate.of(1990, 1, 1),
+                "john@example.com",
+                "johndoe",
+                null  // ← sin contraseña
+        );
+
+        when(patientRepository.findByIdentification(requestSinPassword.identification()))
+                .thenReturn(Optional.of(existingPatient));
+        when(userRepository.findAll())
+                .thenReturn(List.of(existingUser));
+
+        PatientResponse response = patientService.registerPatient(requestSinPassword);
 
         assertNotNull(response);
         assertEquals(1L, response.id());
@@ -110,19 +143,27 @@ class PatientServiceImplTest {
 
     @Test
     void registerPatient_UsernameExists_ThrowsException() {
-        when(patientRepository.findByIdentification(request.identification())).thenReturn(Optional.empty());
-        when(userRepository.findByUsername(request.username())).thenReturn(Optional.of(existingUser));
+        when(patientRepository.findByIdentification(request.identification()))
+                .thenReturn(Optional.empty());
+        when(userRepository.findByUsername(request.username()))
+                .thenReturn(Optional.of(existingUser));
 
-        assertThrows(UsernameAlreadyExistsException.class, () -> patientService.registerPatient(request));
+        assertThrows(
+                UsernameAlreadyExistsException.class,
+                () -> patientService.registerPatient(request)
+        );
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void findByIdentification_Exists_ReturnsDetail() {
-        when(patientRepository.findByIdentification("1234567890")).thenReturn(Optional.of(existingPatient));
-        when(userRepository.findAll()).thenReturn(List.of(existingUser));
+        when(patientRepository.findByIdentification("1234567890"))
+                .thenReturn(Optional.of(existingPatient));
+        when(userRepository.findAll())
+                .thenReturn(List.of(existingUser));
 
-        Optional<PatientDetailResponse> result = patientService.findByIdentification("1234567890");
+        Optional<PatientDetailResponse> result =
+                patientService.findByIdentification("1234567890");
 
         assertTrue(result.isPresent());
         assertEquals("1234567890", result.get().identification());
@@ -132,9 +173,11 @@ class PatientServiceImplTest {
 
     @Test
     void findByIdentification_NotExists_ReturnsEmpty() {
-        when(patientRepository.findByIdentification("9999999999")).thenReturn(Optional.empty());
+        when(patientRepository.findByIdentification("9999999999"))
+                .thenReturn(Optional.empty());
 
-        Optional<PatientDetailResponse> result = patientService.findByIdentification("9999999999");
+        Optional<PatientDetailResponse> result =
+                patientService.findByIdentification("9999999999");
 
         assertFalse(result.isPresent());
     }

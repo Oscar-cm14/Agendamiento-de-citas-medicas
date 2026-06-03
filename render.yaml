@@ -1,0 +1,120 @@
+# =============================================================================
+# render.yaml — Configuración de despliegue en Render.com
+# =============================================================================
+# Render.com es GRATUITO y NO pide tarjeta de crédito para el plan Free.
+#
+# Este archivo define los servicios que Render despliega automáticamente
+# cuando haces push a la rama main.
+#
+# CÓMO USARLO:
+#   1. Ve a render.com → New → Blueprint
+#   2. Conecta tu repositorio de GitHub
+#   3. Render lee este archivo y crea todos los servicios automáticamente
+# =============================================================================
+
+services:
+
+  # ── Backend Spring Boot ────────────────────────────────────────────────────
+  - type: web
+    name: clinica-backend
+    runtime: java
+    plan: free               # plan gratuito de Render
+
+    # Directorio del backend dentro del repositorio
+    rootDir: backend-reservas
+
+    # Comando para compilar el proyecto
+    buildCommand: mvn clean package -DskipTests -B
+
+    # Comando para iniciar el backend
+    # El archivo JAR se genera en app-main/target/
+    startCommand: java -Djava.security.egd=file:/dev/./urandom -jar app-main/target/*.jar
+
+    # Puerto que usa el backend
+    envVars:
+      # ── Base de datos (Neon PostgreSQL) ────────────────────────────────────
+      # Neon.tech da PostgreSQL GRATIS sin tarjeta
+      # Copia la DATABASE_URL desde Neon y pégala en Render → Environment
+      - key: SPRING_DATASOURCE_URL
+        sync: false       # se configura manualmente en Render dashboard
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+
+      # ── Driver PostgreSQL ──────────────────────────────────────────────────
+      - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: org.postgresql.Driver
+
+      # ── JPA ────────────────────────────────────────────────────────────────
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - key: SPRING_JPA_DATABASE_PLATFORM
+        value: org.hibernate.dialect.PostgreSQLDialect
+
+      # ── Keycloak ───────────────────────────────────────────────────────────
+      # Despliega Keycloak también en Render (ver sección keycloak-auth abajo)
+      - key: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
+        sync: false       # pon la URL de tu Keycloak en Render
+      - key: KEYCLOAK_ADMIN_SERVER_URL
+        sync: false
+      - key: KEYCLOAK_ADMIN_REALM
+        value: clinica-realm
+      - key: KEYCLOAK_ADMIN_CLIENT_ID
+        value: admin-cli
+      - key: KEYCLOAK_ADMIN_USERNAME
+        value: admin
+      - key: KEYCLOAK_ADMIN_PASSWORD
+        sync: false
+      - key: KEYCLOAK_CLIENT_ID
+        value: clinica-frontend
+
+      # ── Notificaciones ─────────────────────────────────────────────────────
+      - key: SPRING_MAIL_USERNAME
+        sync: false
+      - key: SPRING_MAIL_PASSWORD
+        sync: false
+      - key: NOTIFICATION_EMAIL_ENABLED
+        value: "true"
+      - key: NOTIFICATION_WHATSAPP_ENABLED
+        value: "true"
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+
+      # ── Monitoreo (Actuator) ───────────────────────────────────────────────
+      - key: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+        value: health,info,metrics
+      - key: MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS
+        value: always
+
+  # ── Keycloak ───────────────────────────────────────────────────────────────
+  # Nota: Keycloak necesita ~512MB RAM. El plan Free de Render da 512MB.
+  # Puede funcionar lento pero es suficiente para demo/presentación.
+  - type: web
+    name: clinica-keycloak
+    runtime: docker
+    plan: free
+    rootDir: .
+
+    # Usa la imagen oficial de Keycloak
+    dockerfilePath: ./keycloak/Dockerfile
+
+    envVars:
+      - key: KEYCLOAK_ADMIN
+        value: admin
+      - key: KEYCLOAK_ADMIN_PASSWORD
+        sync: false
+      - key: KC_DB
+        value: postgres
+      - key: KC_DB_URL
+        sync: false      # la misma DATABASE_URL de Neon
+      - key: KC_DB_USERNAME
+        sync: false
+      - key: KC_DB_PASSWORD
+        sync: false
+      - key: KC_HOSTNAME_STRICT
+        value: "false"
+      - key: KC_HTTP_ENABLED
+        value: "true"

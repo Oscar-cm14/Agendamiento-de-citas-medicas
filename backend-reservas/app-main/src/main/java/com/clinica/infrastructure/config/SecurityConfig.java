@@ -40,46 +40,90 @@ public class SecurityConfig {
 
                 // ── Públicos ──────────────────────────────────────────────
                 .requestMatchers("/h2-console/**").permitAll()
+                // Actuator: health e info públicos (Render los usa para verificar que el servicio esté vivo)
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                // Métricas solo para admins autenticados
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/users/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/patients/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/schedulers/register").permitAll()
 
                 // ── Solo ADMIN ────────────────────────────────────────────
                 .requestMatchers("/api/v1/configurations/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/doctors/schedules/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/doctors/schedules/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/doctors/schedules/**")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
                 .requestMatchers(HttpMethod.POST, "/api/v1/doctors").hasRole("ADMIN")
 
                 // ── Médicos ───────────────────────────────────────────────
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/doctors").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/doctors/by-user/**").hasAnyRole("ADMIN", "DOCTOR")
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/doctors/me").hasRole("DOCTOR")
+                .requestMatchers(HttpMethod.GET, "/api/v1/doctors")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                .requestMatchers(HttpMethod.GET, "/api/v1/doctors/by-user/**")
+                        .hasAnyRole("ADMIN", "DOCTOR")
+                // GET /me — médico autenticado (debe ir ANTES de /{id})
+                .requestMatchers(HttpMethod.GET, "/api/v1/doctors/me")
+                        .hasRole("DOCTOR")
+                // PUT /me — médico edita SU PROPIO perfil (debe ir ANTES de /{id})
+                .requestMatchers(HttpMethod.PUT, "/api/v1/doctors/me")
+                        .hasRole("DOCTOR")
 
                 // ── Pacientes ─────────────────────────────────────────────
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/patients/by-identification").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
-                // NUEVO: buscar paciente por username para el login
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/patients/by-username").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
+                .requestMatchers(HttpMethod.GET, "/api/v1/patients/by-identification")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
+                .requestMatchers(HttpMethod.GET, "/api/v1/patients/by-username")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
+                .requestMatchers(HttpMethod.GET, "/api/v1/patients/by-id/**")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR", "PATIENT")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/patients/**")
+                        .hasAnyRole("ADMIN", "PATIENT")
 
                 // ── Citas ─────────────────────────────────────────────────
-                .requestMatchers(HttpMethod.POST,
-                        "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
-                .requestMatchers(HttpMethod.PUT,
-                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
-                .requestMatchers(HttpMethod.PATCH,
-                        "/api/v1/appointments/**").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/appointments").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                .requestMatchers(HttpMethod.POST, "/api/v1/appointments")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/appointments/**")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/appointments/**")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                .requestMatchers(HttpMethod.GET, "/api/v1/appointments")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
-                // ── Franjas disponibles ───────────────────────────────────
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/appointments/slots").hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
+                // Franjas disponibles
+                .requestMatchers(HttpMethod.GET, "/api/v1/appointments/slots")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "PATIENT", "DOCTOR")
 
-                // ── Exportar citas a CSV ──────────────────────────────────
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/appointments/export").hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+                // Citas prioritarias — NUEVO
+                .requestMatchers(HttpMethod.GET, "/api/v1/appointments/priority")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+
+                // Exportar CSV
+                .requestMatchers(HttpMethod.GET, "/api/v1/appointments/export")
+                        .hasAnyRole("ADMIN", "SCHEDULER", "DOCTOR")
+
+                // ── Gestión de usuarios (solo ADMIN) ──────────────────────
+                .requestMatchers(HttpMethod.GET, "/api/v1/users").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/*/roles").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/users/*/roles").hasRole("ADMIN")
+
+                // ── Médico: edición de perfil ─────────────────────────────
+                // Solo ADMIN puede editar OTROS médicos por ID
+                .requestMatchers(HttpMethod.PUT, "/api/v1/doctors/*").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/doctors/*")
+                        .hasAnyRole("ADMIN", "DOCTOR", "PATIENT", "SCHEDULER")
+
+                // ── Agendadores ───────────────────────────────────────────
+                .requestMatchers(HttpMethod.GET, "/api/v1/schedulers")
+                        .hasRole("ADMIN")
+                // GET /schedulers/me — agendador ve su propio perfil
+                .requestMatchers(HttpMethod.GET, "/api/v1/schedulers/me")
+                        .hasAnyRole("ADMIN", "SCHEDULER")
+                // PUT /schedulers/me — agendador edita su propio perfil
+                .requestMatchers(HttpMethod.PUT, "/api/v1/schedulers/me")
+                        .hasAnyRole("ADMIN", "SCHEDULER")
+                // GET/PUT por ID — solo ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/v1/schedulers/*")
+                        .hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/schedulers/*")
+                        .hasRole("ADMIN")
 
                 // ── Todo lo demás requiere autenticación ──────────────────
                 .anyRequest().authenticated()
@@ -94,7 +138,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of(
+            "http://localhost:4200",
+            "https://agendamiento-de-citas-medicas.vercel.app"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -139,7 +186,8 @@ public class SecurityConfig {
 
     @Bean
     public org.springframework.security.authentication.AuthenticationManager authenticationManager(
-            org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration config) throws Exception {
+            org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration config)
+            throws Exception {
         return config.getAuthenticationManager();
     }
 }

@@ -6,6 +6,7 @@ import { AgendarCita } from './agendar-cita/agendar-cita';
 import { Admin } from './admin/admin';
 import { Agendador } from './agendador/agendador';
 import { Medico } from './medico/medico';
+import { Ayuda } from './ayuda/ayuda';
 
 export const routes: Routes = [
   { path: '', component: Page },
@@ -15,5 +16,6 @@ export const routes: Routes = [
   { path: 'admin', component: Admin },
   { path: 'agendador', component: Agendador },
   { path: 'medico', component: Medico },
+   { path: 'ayuda', component: Ayuda },
   { path: '**', redirectTo: '' }
 ];

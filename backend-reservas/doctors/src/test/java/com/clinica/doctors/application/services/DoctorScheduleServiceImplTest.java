@@ -122,7 +122,7 @@ class DoctorScheduleServiceImplTest {
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            scheduleService.getScheduleByDoctor(1L);
+            scheduleService.getScheduleByDoctorId(1L);
         });
 
         assertEquals("Horario no configurado para este médico", exception.getMessage());
@@ -144,7 +144,7 @@ class DoctorScheduleServiceImplTest {
         when(scheduleRepository.findByDoctorId(1L)).thenReturn(Optional.of(schedule));
 
         // Act
-        DoctorScheduleResponse response = scheduleService.getScheduleByDoctor(1L);
+        DoctorScheduleResponse response = scheduleService.getScheduleByDoctorId(1L);
 
         // Assert
         assertNotNull(response);

@@ -51,6 +51,27 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        
+
+        <!-- Spring Mail – para envío de correo SMTP -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+<!--
+  NOTA: Twilio WhatsApp NO requiere dependencia adicional.
+  Se usa via HTTP REST con el RestTemplate ya disponible en Spring.
+  Si prefieres el SDK oficial de Twilio, puedes agregar:
+-->
+
+
+        <dependency>
+            <groupId>com.twilio.sdk</groupId>
+            <artifactId>twilio</artifactId>
+            <version>10.1.5</version>
+        </dependency>
+
     </dependencies>
 
 </project>

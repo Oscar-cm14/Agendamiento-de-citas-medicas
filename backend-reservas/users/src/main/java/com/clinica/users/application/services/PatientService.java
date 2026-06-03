@@ -3,6 +3,8 @@ package com.clinica.users.application.services;
 import com.clinica.shared.dto.PatientDetailResponse;
 import com.clinica.shared.dto.PatientRegistrationRequest;
 import com.clinica.shared.dto.PatientResponse;
+import com.clinica.shared.dto.PatientUpdateRequest;
+
 import java.util.Optional;
 
 /**
@@ -19,4 +21,11 @@ public interface PatientService {
 
     // Buscar paciente por username (usado en el login del paciente para obtener su ID)
     Optional<PatientDetailResponse> findByUsername(String username);
+
+   PatientDetailResponse updatePatient(
+        Long patientId,
+        PatientUpdateRequest request
+);
+
+Optional<PatientDetailResponse> findById(Long id);
 }

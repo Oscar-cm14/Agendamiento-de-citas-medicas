@@ -46,6 +46,6 @@ public class DoctorScheduleController {
     public ResponseEntity<DoctorScheduleResponse> getSchedule(
             @PathVariable Long doctorId) {
 
-        return ResponseEntity.ok(scheduleService.getScheduleByDoctor(doctorId));
+        return ResponseEntity.ok(scheduleService.getScheduleByDoctorId(doctorId));
     }
 }

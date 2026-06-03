@@ -1,9 +1,8 @@
 <!-- ============================================================
-     agendador.html  –  Panel del Agendador
+     agendador.html  –  Panel del Agendador (Versión Integrada)
      ============================================================ -->
 
 <div class="container my-4">
-  <!-- ── HEADER ── -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h2 class="mb-0">📋 Panel Agendador</h2>
@@ -11,17 +10,22 @@
         Bienvenido, <strong>{{ agendadorNombre }}</strong>
       </small>
     </div>
-    <button class="btn btn-outline-danger" (click)="cerrarSesion()">Cerrar Sesión</button>
+    <div class="d-flex gap-2">
+      <a routerLink="/ayuda" class="btn btn-outline-info btn-sm">
+        📖 Ayuda
+      </a>
+      <button class="btn btn-outline-danger" (click)="cerrarSesion()">
+        Cerrar Sesión
+      </button>
+    </div>
   </div>
 
-  <!-- ── MENSAJE GLOBAL CANCELACIÓN ── -->
   <div *ngIf="mensajeCancelacion" class="alert py-2 mb-3"
     [class.alert-success]="mensajeCancelacion.startsWith('✅')"
     [class.alert-danger]="mensajeCancelacion.startsWith('❌')">
     {{ mensajeCancelacion }}
   </div>
 
-  <!-- ── PESTAÑAS ── -->
   <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
       <button
@@ -50,17 +54,32 @@
         🔄 Reagendar Cita
       </button>
     </li>
+    <li class="nav-item">
+      <button
+        class="nav-link d-flex align-items-center gap-1"
+        [class.active]="pestanaActiva === 'prioritarias'"
+        (click)="pestanaActiva = 'prioritarias'"
+      >
+        🚨 Prioritarias
+        <span *ngIf="priorCitas.length > 0" class="badge bg-danger ms-1">{{ priorCitas.length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button
+        class="nav-link"
+        [class.active]="pestanaActiva === 'perfil'"
+        (click)="pestanaActiva = 'perfil'; cargarPerfil()"
+      >
+        👤 Mi Perfil
+      </button>
+    </li>
   </ul>
 
-  <!-- ============================================================ -->
-  <!-- PESTAÑA 1: LISTAR CITAS                                       -->
-  <!-- ============================================================ -->
   <div *ngIf="pestanaActiva === 'listar'">
     <div class="card shadow p-4">
       <h5 class="mb-3">Buscar citas por médico y fecha</h5>
 
       <div class="row g-3 mb-3">
-        <!-- PASO 1: Especialidad -->
         <div class="col-md-4">
           <label class="form-label fw-semibold">Especialidad</label>
           <select
@@ -73,7 +92,6 @@
           </select>
         </div>
 
-        <!-- PASO 2: Médico -->
         <div class="col-md-4">
           <label class="form-label fw-semibold">Médico</label>
           <select class="form-select" [(ngModel)]="doctorIdBuscar" (change)="onDoctorIdBuscarChange()" [disabled]="!especialidadBuscar">
@@ -87,7 +105,6 @@
           </small>
         </div>
 
-        <!-- PASO 3: Fecha -->
         <div class="col-md-3">
           <label class="form-label fw-semibold">Fecha</label>
           <div class="input-group">
@@ -97,7 +114,6 @@
           </div>
         </div>
 
-        <!-- Botón buscar -->
         <div class="col-md-1 d-flex align-items-end">
           <button
             class="btn btn-outline-primary w-100"
@@ -110,20 +126,15 @@
         </div>
       </div>
 
-      <!-- Error de búsqueda -->
       <div *ngIf="errorBuscar" class="alert alert-danger">{{ errorBuscar }}</div>
 
-      <!-- Resultados -->
       <div *ngIf="citas.length > 0">
-        <!-- ── Cabecera resultados + botón exportar CSV ── -->
         <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
           <h6 class="mb-0">Resultados</h6>
 
           <div class="d-flex align-items-center gap-3">
-            <!-- Contador total -->
             <span class="badge bg-primary fs-6">Total: {{ citas.length }} citas</span>
 
-            <!-- Botón exportar CSV -->
             <button
               class="btn btn-outline-success btn-sm"
               (click)="exportarCsv()"
@@ -139,7 +150,6 @@
           </div>
         </div>
 
-        <!-- Mensaje de éxito/error de la exportación -->
         <div
           *ngIf="mensajeExport"
           class="alert py-2 mb-2"
@@ -149,7 +159,6 @@
           {{ mensajeExport }}
         </div>
 
-        <!-- Tabla de citas -->
         <div class="table-responsive">
           <table class="table table-striped table-hover">
             <thead class="table-dark">
@@ -160,18 +169,25 @@
                 <th>Fecha</th>
                 <th>Hora inicio</th>
                 <th>Hora fin</th>
+                <th>Prioridad</th>
                 <th>Estado</th>
                 <th>Acción</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let cita of citas; let i = index">
+              <tr *ngFor="let cita of citas; let i = index" [class.table-danger]="cita.priority">
                 <td>{{ i + 1 }}</td>
                 <td>{{ cita.patientName }}</td>
                 <td>{{ cita.doctorName }}</td>
                 <td>{{ cita.date }}</td>
                 <td>{{ cita.startTime }}</td>
                 <td>{{ cita.endTime }}</td>
+                <td>
+                  <span *ngIf="cita.priority" class="badge" [ngClass]="badgeUrgencia(cita.urgencyLevel)">
+                    🚨 {{ textoUrgencia(cita.urgencyLevel) }}
+                  </span>
+                  <span *ngIf="!cita.priority" class="text-muted">—</span>
+                </td>
                 <td>
                   <span
                     class="badge"
@@ -199,7 +215,6 @@
         </div>
       </div>
 
-      <!-- Sin resultados -->
       <div
         *ngIf="citas.length === 0 && !buscando && fechaBuscar && doctorIdBuscar"
         class="alert alert-info"
@@ -209,27 +224,21 @@
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- PESTAÑA 2: CREAR CITA                                         -->
-  <!-- ============================================================ -->
   <div *ngIf="pestanaActiva === 'crear'">
     <div class="card shadow p-4">
       <h5 class="mb-4">Nueva Cita por WhatsApp</h5>
 
-      <!-- Éxito -->
       <div *ngIf="citaCreada" class="alert alert-success text-center fs-5">
-        Cita creada exitosamente.
+        ✅ Cita creada exitosamente.
         <br />
         <button class="btn btn-primary mt-2" (click)="reiniciarFormulario()">
           Crear otra cita
         </button>
       </div>
 
-      <!-- Error -->
       <div *ngIf="errorCita" class="alert alert-danger">{{ errorCita }}</div>
 
       <div *ngIf="!citaCreada">
-        <!-- ──────── DATOS DEL PACIENTE ──────── -->
         <h6 class="mb-3">Datos del Paciente</h6>
         <div class="row g-3 mb-4">
           <div class="col-md-6">
@@ -302,7 +311,6 @@
 
         <hr />
 
-        <!-- ──────── DATOS DE LA CITA ──────── -->
         <h6 class="mb-3">Datos de la Cita</h6>
         <div class="row g-3">
           <div class="col-md-6">
@@ -366,6 +374,38 @@
             </div>
           </div>
 
+          <div class="col-12" *ngIf="nuevaCita.doctorId && nuevaCita.fecha">
+            <div class="card border-danger mt-2">
+              <div class="card-header bg-danger bg-opacity-10 text-danger fw-semibold">
+                🚨 Cita prioritaria
+              </div>
+              <div class="card-body">
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" role="switch"
+                    id="switchPrioritaria"
+                    [(ngModel)]="nuevaCita.prioritaria" />
+                  <label class="form-check-label" for="switchPrioritaria">
+                    <strong>Marcar esta cita como prioritaria</strong>
+                  </label>
+                </div>
+
+                <div *ngIf="nuevaCita.prioritaria" class="row g-3">
+                  <div class="col-md-12">
+                    <label class="form-label">Motivo de la prioridad <span class="text-danger">*</span></label>
+                    <textarea class="form-control" rows="2"
+                      [(ngModel)]="nuevaCita.motivoPrioridad"
+                      placeholder="Ej: Paciente con dolor agudo, requiere atención prioritaria..."
+                      maxlength="300">
+                    </textarea>
+                    <small class="text-muted">
+                      {{ nuevaCita.motivoPrioridad ? nuevaCita.motivoPrioridad.length : 0 }}/300 caracteres
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="col-12" *ngIf="nuevaCita.doctorId && nuevaCita.fecha && franjas.length === 0">
             <div class="alert alert-warning">
               No hay franjas disponibles para esta fecha y médico.
@@ -374,11 +414,13 @@
 
           <div class="col-12">
             <button
-              class="btn btn-outline-sesion w-100"
+              class="btn btn-success w-100"
               (click)="crearCita()"
-              [disabled]="cargandoCita || !nuevaCita.startTime"
+              [disabled]="cargandoCita || !nuevaCita.startTime || (nuevaCita.prioritaria && (!nuevaCita.motivoPrioridad || !nuevaCita.motivoPrioridad.trim()))"
             >
-              <span *ngIf="!cargandoCita">Crear Cita</span>
+              <span *ngIf="!cargandoCita">
+                {{ nuevaCita.prioritaria ? '⭐ Crear Cita Prioritaria' : 'Crear Cita' }}
+              </span>
               <span *ngIf="cargandoCita">
                 <span class="spinner-border spinner-border-sm me-1"></span>
                 Creando cita...
@@ -390,16 +432,12 @@
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- PESTAÑA 3: REAGENDAR CITA                                     -->
-  <!-- ============================================================ -->
   <div *ngIf="pestanaActiva === 'reagendar'">
     <div class="card shadow p-4">
       <h5 class="mb-4">🔄 Reagendar Cita</h5>
 
       <div *ngIf="reagExito" class="alert alert-success">{{ reagExito }}</div>
 
-      <!-- PASO 1: Buscar cita a mover -->
       <div class="card bg-light p-3 mb-4">
         <h6 class="mb-3 fw-bold">Paso 1 — Selecciona la cita a mover</h6>
 
@@ -451,10 +489,14 @@
             <button *ngFor="let cita of reagCitas"
               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
               [class.active]="reagCitaSeleccionada?.id === cita.id"
+              [class.bg-danger]="cita.priority"
               (click)="seleccionarCitaReagendar(cita)">
               <div>
                 <strong>{{ cita.patientName }}</strong>
                 <span class="ms-2 text-muted small">{{ cita.startTime }} – {{ cita.endTime }}</span>
+                <span *ngIf="cita.priority" class="badge bg-warning ms-2">
+                  🚨 {{ textoUrgencia(cita.urgencyLevel) }}
+                </span>
               </div>
               <span class="badge bg-success">Programada</span>
             </button>
@@ -462,7 +504,6 @@
         </div>
       </div>
 
-      <!-- PASO 2: Nueva fecha y franja -->
       <div *ngIf="reagCitaSeleccionada" class="card bg-light p-3">
         <h6 class="mb-3 fw-bold">
           Paso 2 — Nueva fecha y hora para
@@ -506,7 +547,6 @@
 
         <div *ngIf="reagErrorGuardar" class="alert alert-danger">{{ reagErrorGuardar }}</div>
 
-        <!-- Botones confirmar / cancelar selección -->
         <div class="d-flex gap-2">
           <button class="btn btn-warning flex-grow-1"
             (click)="confirmarReagendar()"
@@ -527,10 +567,299 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════ -->
-  <!-- MODAL DE CANCELACIÓN                                        -->
-  <!-- ══════════════════════════════════════════════════════════ -->
-  <div *ngIf="citaCancelando"
+  <div *ngIf="pestanaActiva === 'prioritarias'">
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <h4 class="mb-0">🚨 Citas Prioritarias</h4>
+      <span class="badge bg-danger">Panel de urgencias</span>
+    </div>
+
+    <p class="text-muted">
+      Consulte y gestione las citas marcadas como prioritarias.
+      Las citas de mayor urgencia aparecen primero.
+    </p>
+
+    <div class="card mb-4">
+      <div class="card-header">Filtros de búsqueda</div>
+      <div class="card-body row g-3">
+
+        <div class="col-md-3">
+          <label class="form-label">Especialidad</label>
+          <select class="form-select" [(ngModel)]="priorEspecialidad"
+            (change)="onPriorEspecialidadChange()">
+            <option value="">— Todas —</option>
+            <option *ngFor="let e of especialidades" [value]="e">{{ e }}</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Médico</label>
+          <select class="form-select" [(ngModel)]="priorDoctorId"
+            [disabled]="!priorEspecialidad">
+            <option [value]="0">— Todos —</option>
+            <option *ngFor="let m of priorMedicosFiltrados" [value]="m.id">
+              Dr(a). {{ m.firstName }} {{ m.lastName }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label">Desde <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" [(ngModel)]="priorFechaDesde" />
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label">Hasta</label>
+          <input type="date" class="form-control" [(ngModel)]="priorFechaHasta"
+            [min]="priorFechaDesde" />
+        </div>
+
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-danger w-100"
+            (click)="buscarCitasPrioritarias()"
+            [disabled]="!priorFechaDesde || priorBuscando">
+            {{ priorBuscando ? 'Buscando…' : '🔍 Buscar' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <div *ngIf="priorError" class="alert alert-danger">{{ priorError }}</div>
+    <div *ngIf="priorMensaje" class="alert"
+      [class.alert-success]="priorMensaje.startsWith('✅')"
+      [class.alert-danger]="priorMensaje.startsWith('❌')">
+      {{ priorMensaje }}
+    </div>
+
+    <div *ngIf="priorBuscando" class="text-center py-4">
+      <div class="spinner-border text-danger" role="status">
+        <span class="visually-hidden">Buscando…</span>
+      </div>
+      <p class="mt-2 text-muted">Consultando citas prioritarias…</p>
+    </div>
+
+    <div *ngIf="!priorBuscando && priorCitas.length > 0">
+
+      <div class="row g-2 mb-3">
+        <div class="col-auto">
+          <span class="badge bg-danger fs-6 px-3 py-2">
+            🔴 Alta: {{ priorCountHigh }}
+          </span>
+        </div>
+        <div class="col-auto">
+          <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+            🟡 Media: {{ priorCountMedium }}
+          </span>
+        </div>
+        <div class="col-auto">
+          <span class="badge bg-info text-dark fs-6 px-3 py-2">
+            🔵 Baja: {{ priorCountLow }}
+          </span>
+        </div>
+      </div>
+
+      <table class="table table-bordered table-hover align-middle">
+        <thead class="table-danger">
+          <tr>
+            <th>#</th>
+            <th>Urgencia</th>
+            <th>Paciente</th>
+            <th>Médico</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Motivo de prioridad</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of priorCitas; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td>
+              <span class="badge fs-6" [ngClass]="badgeUrgencia(c.urgencyLevel)">
+                {{ textoUrgencia(c.urgencyLevel) }}
+              </span>
+            </td>
+            <td>
+              <strong>{{ c.patientName }}</strong>
+              <br>
+              <small class="text-muted">{{ c.patientIdentification }}</small>
+            </td>
+            <td>
+              Dr(a). {{ c.doctorName }}
+              <br>
+              <small class="text-muted">{{ c.specialty }}</small>
+            </td>
+            <td>{{ c.date }}</td>
+            <td>{{ c.startTime }}</td>
+            <td class="text-danger">
+              {{ c.priorityReason || 'Sin motivo' }}
+            </td>
+            <td>
+              <span class="badge"
+                [class.bg-success]="c.status === 'SCHEDULED'"
+                [class.bg-secondary]="c.status !== 'SCHEDULED'">
+                {{ c.status === 'SCHEDULED' ? 'Programada' : c.status }}
+              </span>
+            </td>
+            <td>
+              <span *ngIf="priorProcesandoId === c.id"
+                class="spinner-border spinner-border-sm text-danger">
+              </span>
+              <button *ngIf="priorProcesandoId !== c.id"
+                class="btn btn-sm btn-outline-danger"
+                (click)="desmarcarPrioritaria(c)"
+                title="Quitar estado de prioritaria">
+                ✖ Quitar prioridad
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="text-muted text-end">
+        Total: <strong>{{ priorCitas.length }}</strong> cita(s) prioritaria(s)
+      </p>
+
+    </div>
+
+    <div *ngIf="!priorBuscando && priorCitas.length === 0 && priorFechaDesde"
+      class="alert alert-info">
+      No se encontraron citas prioritarias para los filtros seleccionados.
+    </div>
+
+    <div *ngIf="!priorBuscando && !priorFechaDesde"
+      class="text-center py-5 text-muted">
+      <span style="font-size:3rem;">🚨</span>
+      <p class="mt-2">Seleccione un rango de fechas y haga clic en <strong>Buscar</strong>.</p>
+    </div>
+
+  </div><div *ngIf="pestanaActiva === 'perfil'">
+
+    <div class="d-flex align-items-center gap-2 mb-4">
+      <h4 class="mb-0">👤 Mi perfil</h4>
+    </div>
+
+    <div *ngIf="perfilCargando" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2 text-muted">Cargando datos…</p>
+    </div>
+
+    <div *ngIf="perfilError" class="alert alert-danger">{{ perfilError }}</div>
+
+    <div *ngIf="!perfilCargando && perfilDatos" class="row justify-content-center">
+      <div class="col-md-7">
+        <div class="card">
+          <div class="card-header fw-semibold">Información personal</div>
+          <div class="card-body row g-3">
+
+            <div class="col-md-6">
+              <label class="form-label">Nombre</label>
+              <input type="text" class="form-control"
+                [(ngModel)]="perfilDatos.firstName"
+                [disabled]="!perfilEditando" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Apellido</label>
+              <input type="text" class="form-control"
+                [(ngModel)]="perfilDatos.lastName"
+                [disabled]="!perfilEditando" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Correo electrónico</label>
+              <input type="email" class="form-control"
+                [(ngModel)]="perfilDatos.email"
+                [disabled]="!perfilEditando" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Teléfono</label>
+              <input type="text" class="form-control"
+                [(ngModel)]="perfilDatos.phone"
+                [disabled]="!perfilEditando" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Número de cédula</label>
+              <input type="text" class="form-control bg-light"
+                [value]="perfilDatos.identification"
+                disabled />
+              <small class="text-muted">No editable</small>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Rol</label>
+              <input type="text" class="form-control bg-light"
+                [value]="perfilDatos.role || 'AGENDADOR'"
+                disabled />
+              <small class="text-muted">No editable</small>
+            </div>
+
+          </div>
+
+          <div *ngIf="perfilEditando" class="card-body border-top row g-3">
+            <div class="col-12">
+              <p class="mb-2 fw-semibold text-secondary">
+                🔒 Cambiar contraseña
+                <small class="fw-normal ms-1">(dejar en blanco para no cambiarla)</small>
+              </p>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Nueva contraseña</label>
+              <input type="password" class="form-control"
+                [(ngModel)]="perfilNuevoPassword"
+                placeholder="Mínimo 6 caracteres" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Confirmar contraseña</label>
+              <input type="password" class="form-control"
+                [(ngModel)]="perfilConfirmPassword"
+                [class.is-invalid]="perfilPasswordMismatch"
+                placeholder="Repita la contraseña" />
+              <div *ngIf="perfilPasswordMismatch" class="invalid-feedback">
+                Las contraseñas no coinciden.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer d-flex gap-2">
+
+            <button *ngIf="!perfilEditando"
+              class="btn btn-primary"
+              (click)="perfilEditando = true">
+              ✏️ Editar
+            </button>
+
+            <ng-container *ngIf="perfilEditando">
+              <button class="btn btn-success"
+                (click)="guardarPerfil()"
+                [disabled]="perfilGuardando || perfilPasswordMismatch">
+                {{ perfilGuardando ? 'Guardando…' : '💾 Guardar cambios' }}
+              </button>
+              <button class="btn btn-outline-secondary"
+                (click)="cancelarEditarPerfil()">
+                Cancelar
+              </button>
+            </ng-container>
+
+          </div>
+        </div>
+
+        <div *ngIf="perfilMensaje" class="alert mt-3"
+          [class.alert-success]="perfilMensaje.startsWith('✅')"
+          [class.alert-danger]="perfilMensaje.startsWith('❌')">
+          {{ perfilMensaje }}
+        </div>
+
+      </div>
+    </div>
+
+  </div><div *ngIf="citaCancelando"
        class="modal d-block"
        style="background:rgba(0,0,0,0.5); position:fixed; inset:0; z-index:1050;">
     <div class="modal-dialog modal-dialog-centered">

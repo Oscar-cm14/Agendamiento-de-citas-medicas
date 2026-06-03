@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -15,17 +16,12 @@ export class Login {
 
   username = '';
   password = '';
-  error = '';
+  error    = '';
   cargando = false;
 
-  private keycloakUrl = 'http://localhost:8081/realms/clinica-realm/protocol/openid-connect/token';
-  private clientId = 'clinica-frontend';
-  private apiUrl = 'http://localhost:8080/api/v1';
+  private apiUrl = environment.apiUrl;
 
-  constructor(
-    private http: HttpClient,
-    private router: Router
-  ) { }
+  constructor(private http: HttpClient, private router: Router) {}
 
   iniciarSesion() {
     if (!this.username || !this.password) {
@@ -34,83 +30,40 @@ export class Login {
     }
 
     this.cargando = true;
-    this.error = '';
+    this.error    = '';
 
-    const body = new HttpParams()
-      .set('client_id', this.clientId)
-      .set('grant_type', 'password')
-      .set('username', this.username)
-      .set('password', this.password);
+    this.http.post<any>(
+      `${this.apiUrl}/users/login`,
+      { username: this.username, password: this.password }
+    ).subscribe({
 
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded'
-    });
-
-    this.http.post<any>(this.keycloakUrl, body.toString(), { headers }).subscribe({
       next: (res) => {
-        try {
-          const token = res.access_token;
-          localStorage.setItem('token', token);
-
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const roles = payload.realm_access?.roles || [];
-
-          let role = 'PATIENT';
-          if (roles.includes('ADMIN')) role = 'ADMIN';
-          else if (roles.includes('DOCTOR')) role = 'DOCTOR';
-          else if (roles.includes('SCHEDULER')) role = 'SCHEDULER';
-
-          localStorage.setItem('role', role);
-          localStorage.setItem('username', this.username);
-          this.cargando = false;
-
-          // Llamar al backend para obtener el userId / personId
-          const authHeaders = new HttpHeaders({ Authorization: `Bearer ${token}` });
-          this.http.get<any>('http://localhost:8080/api/v1/users/me', { headers: authHeaders }).subscribe({
-            next: (userData) => {
-              localStorage.setItem('userId', userData.personId);
-              this.cargando = false;
-              this.redirigirSegunRol(role);
-            },
-            error: (err) => {
-              console.error('Error obteniendo perfil de usuario', err);
-              this.cargando = false;
-              // Fallback en caso de error
-              this.redirigirSegunRol(role);
-            }
-          });
-
-        } catch (e) {
-          console.error("Error parseando token", e);
-          this.cargando = false;
+        localStorage.setItem('token',    res.token);
+        localStorage.setItem('role',     res.role);
+        localStorage.setItem('username', res.username ?? this.username);
+        if (res.userId != null) {
+          localStorage.setItem('userId', String(res.userId));
         }
+        this.cargando = false;
+        this.redirigirSegunRol(res.role);
       },
+
       error: (err) => {
         this.cargando = false;
-        if (err.status === 0) {
-          this.error = 'No se puede conectar a Keycloak (Servidor caído o problema de CORS)';
-        } else if (err.status === 401 || err.status === 400) {
-          this.error = 'Usuario o contraseña incorrectos';
-        } else {
-          this.error = 'Error ' + err.status + ': ' + (err.error?.error_description || 'Acceso denegado');
-        }
+        if      (err.status === 0)   this.error = 'No se puede conectar al servidor';
+        else if (err.status === 401) this.error = 'Usuario o contraseña incorrectos';
+        else if (err.status === 503) this.error = 'Keycloak no está disponible';
+        else                         this.error = err.error?.error ?? 'Error al iniciar sesión';
       }
     });
   }
 
   private redirigirSegunRol(role: string) {
     switch (role) {
-      case 'ADMIN':
-        this.router.navigate(['/admin']);
-        break;
-      case 'SCHEDULER':
-        this.router.navigate(['/agendador']);
-        break;
-      case 'DOCTOR':
-        this.router.navigate(['/medico']);
-        break;
-      default:
-        this.router.navigate(['/agendar']);
+      case 'ADMIN':     this.router.navigate(['/admin']);     break;
+      case 'SCHEDULER': this.router.navigate(['/agendador']); break;
+      case 'DOCTOR':    this.router.navigate(['/medico']);    break;
+      default:          this.router.navigate(['/agendar']);
     }
   }
 }
