@@ -35,6 +35,7 @@ export class Formulario {
   celularError = '';
   generoError = '';
   registroExitoso = false;
+  sincronizacionExitosa = false;  // true cuando el paciente ya existía y se re-sincronizó
   cargando = false;
   errorServidor = '';
 
@@ -150,12 +151,13 @@ export class Formulario {
     };
 
     this.authService.registrarPaciente(datos).subscribe({
-      // FIX: el backend devuelve { id, fullName, username, email }
-      // guardamos el id en localStorage para usarlo al agendar citas
       next: (res: any) => {
         if (res?.id) {
           localStorage.setItem('userId', String(res.id));
         }
+        // Si el paciente ya existía en H2, el backend lo re-sincroniza con
+        // Keycloak y devuelve sus datos. Mostramos mensaje diferenciado.
+        this.sincronizacionExitosa = res?._sincronizado === true;
         this.registroExitoso = true;
         this.cargando = false;
         this.cdr.detectChanges();

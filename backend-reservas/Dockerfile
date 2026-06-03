@@ -18,5 +18,8 @@ COPY --from=build /app/app-main/target/*.jar app.jar
 # Puerto que expone el backend
 EXPOSE 8080
 
+# Activar perfil de producción (PostgreSQL + Azure Keycloak)
+ENV SPRING_PROFILES_ACTIVE=prod
+
 # Arrancar
 ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]

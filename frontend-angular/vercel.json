@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "buildCommand": "npm run build -- --configuration production",
+  "outputDirectory": "dist/frontend-angular/browser",
+  "installCommand": "npm install"
+}

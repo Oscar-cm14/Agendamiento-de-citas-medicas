@@ -63,6 +63,7 @@ export class Login {
       case 'ADMIN':     this.router.navigate(['/admin']);     break;
       case 'SCHEDULER': this.router.navigate(['/agendador']); break;
       case 'DOCTOR':    this.router.navigate(['/medico']);    break;
+      case 'PATIENT':   this.router.navigate(['/agendar']);  break;
       default:          this.router.navigate(['/agendar']);
     }
   }

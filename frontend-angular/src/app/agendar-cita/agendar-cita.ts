@@ -178,8 +178,15 @@ export class AgendarCita implements OnInit {
 
           console.error(err);
 
-          this.error =
-            'Error obteniendo información del paciente.';
+          if (err.status === 401 || err.status === 403) {
+            this.authService.cerrarSesion();
+            this.router.navigate(['/login']);
+            return;
+          }
+
+          this.error = err.status === 404
+            ? 'Paciente no encontrado. Por favor regístrese nuevamente.'
+            : 'Error obteniendo información del paciente.';
 
           this.cdr.detectChanges();
 
