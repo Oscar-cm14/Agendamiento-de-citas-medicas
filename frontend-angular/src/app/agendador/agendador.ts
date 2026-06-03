@@ -9,10 +9,15 @@ import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatNativeDateModule } from '@angular/material/core';
+
 @Component({
   selector: 'app-agendador',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, MatDatepickerModule, MatInputModule, MatFormFieldModule, MatNativeDateModule],
   templateUrl: './agendador.html'
 })
 export class Agendador implements OnInit {
@@ -28,6 +33,7 @@ export class Agendador implements OnInit {
   especialidadBuscar = '';
   medicosFiltradosBuscar: any[] = [];
   doctorIdBuscar = 0;
+  fechaBuscarObj: Date | null = null;
   fechaBuscar = '';
   citas: any[] = [];
   buscando = false;
@@ -49,12 +55,14 @@ export class Agendador implements OnInit {
   reagEspecialidad = '';
   reagMedicosFiltrados: any[] = [];
   reagDoctorId = 0;
-  reagBuscarFecha = '';
   reagCitas: any[] = [];
   reagBuscando = false;
   reagError = '';
   reagCitaSeleccionada: any = null;
+  reagNuevaFechaObj: Date | null = null;
   reagNuevaFecha = '';
+  reagBuscarFechaObj: Date | null = null;
+  reagBuscarFecha = '';
   reagFranjas: any[] = [];
   reagNuevaHora = '';
   reagCargandoFranjas = false;
@@ -62,7 +70,14 @@ export class Agendador implements OnInit {
   reagExito = '';
   reagErrorGuardar = '';
 
-
+  // ── HORARIOS Y FESTIVOS ──
+  doctorWorkingDays: string[] = [];
+  minDate = new Date();
+  festivosColombiaStr: string[] = [
+    '2024-01-01', '2024-01-08', '2024-03-25', '2024-03-28', '2024-03-29', '2024-05-01', '2024-05-13', '2024-06-03', '2024-06-10', '2024-07-01', '2024-07-20', '2024-08-07', '2024-08-19', '2024-10-14', '2024-11-04', '2024-11-11', '2024-12-08', '2024-12-25',
+    '2025-01-01', '2025-01-06', '2025-03-24', '2025-04-17', '2025-04-18', '2025-05-01', '2025-06-02', '2025-06-23', '2025-06-30', '2025-07-20', '2025-08-07', '2025-08-18', '2025-10-13', '2025-11-03', '2025-11-17', '2025-12-08', '2025-12-25',
+    '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03', '2026-05-01', '2026-05-18', '2026-06-08', '2026-06-15', '2026-06-29', '2026-07-20', '2026-08-07', '2026-08-17', '2026-10-12', '2026-11-02', '2026-11-16', '2026-12-08', '2026-12-25'
+  ];
 
   // ── Variables pestaña CREAR ──
   nuevaCita = {
@@ -77,6 +92,8 @@ export class Agendador implements OnInit {
     fecha: '',
     startTime: ''
   };
+  nuevaCitaFechaObj: Date | null = null;
+  nuevaCitaNacimientoObj: Date | null = null;
 
   especialidadNuevaCita = '';
   medicosFiltradosNueva: any[] = [];
@@ -118,7 +135,7 @@ export class Agendador implements OnInit {
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]));
         // Keycloak incluye given_name y family_name con el nombre real registrado
-        const givenName  = payload.given_name  || '';
+        const givenName = payload.given_name || '';
         const familyName = payload.family_name || '';
         if (givenName || familyName) {
           this.agendadorNombre = (givenName + ' ' + familyName).trim();
@@ -167,6 +184,13 @@ export class Agendador implements OnInit {
     this.mensajeExport = '';
   }
 
+  onDoctorIdBuscarChange() {
+    this.fechaBuscarObj = null;
+    this.fechaBuscar = '';
+    this.citas = [];
+    this.cargarHorarioMedico(this.doctorIdBuscar);
+  }
+
   onEspecialidadNuevaCitaChange() {
     this.medicosFiltradosNueva = this.medicos.filter(
       m => m.specialty === this.especialidadNuevaCita
@@ -178,8 +202,79 @@ export class Agendador implements OnInit {
 
     if (this.medicosFiltradosNueva.length === 1) {
       this.nuevaCita.doctorId = this.medicosFiltradosNueva[0].id;
+      this.onDoctorChangeNuevaCita();
     }
     this.cdr.detectChanges();
+  }
+
+  onDoctorChangeNuevaCita() {
+    this.nuevaCitaFechaObj = null;
+    this.nuevaCita.fecha = '';
+    this.franjas = [];
+    this.nuevaCita.startTime = '';
+    this.cargarHorarioMedico(this.nuevaCita.doctorId);
+  }
+
+  cargarHorarioMedico(doctorId: number) {
+    if (!doctorId) {
+      this.doctorWorkingDays = [];
+      return;
+    }
+    this.http.get<any>(`${this.apiUrl}/doctors/schedules/${doctorId}`, { headers: this.headers() })
+      .subscribe({
+        next: (horario) => {
+          this.doctorWorkingDays = horario.workingDays || [];
+        },
+        error: () => this.doctorWorkingDays = []
+      });
+  }
+
+  formatDateStr(d: Date): string {
+    if (!d) return '';
+    const year = d.getFullYear();
+    const month = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
+  }
+
+  dateFilter = (d: Date | null): boolean => {
+    if (!d) return false;
+    const day = d.getDay();
+    if (day === 0 || day === 6) return false;
+    const dateString = this.formatDateStr(d);
+    if (this.festivosColombiaStr.includes(dateString)) return false;
+    if (this.doctorWorkingDays.length > 0) {
+      const daysMap = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      if (!this.doctorWorkingDays.includes(daysMap[day])) return false;
+    }
+    return true;
+  };
+
+  dateClass = (d: Date): string => {
+    const dateString = this.formatDateStr(d);
+    return this.festivosColombiaStr.includes(dateString) ? 'holiday-date' : '';
+  };
+
+  onFechaBuscarChange() {
+    this.fechaBuscar = this.fechaBuscarObj ? this.formatDateStr(this.fechaBuscarObj) : '';
+  }
+
+  onReagBuscarFechaChange() {
+    this.reagBuscarFecha = this.reagBuscarFechaObj ? this.formatDateStr(this.reagBuscarFechaObj) : '';
+  }
+
+  onNuevaCitaNacimientoChange() {
+    this.nuevaCita.birthDate = this.nuevaCitaNacimientoObj ? this.formatDateStr(this.nuevaCitaNacimientoObj) : '';
+  }
+
+  onNuevaCitaFechaChange() {
+    this.nuevaCita.fecha = this.nuevaCitaFechaObj ? this.formatDateStr(this.nuevaCitaFechaObj) : '';
+    if (this.nuevaCita.fecha) this.cargarFranjas();
+  }
+
+  onReagNuevaFechaChange() {
+    this.reagNuevaFecha = this.reagNuevaFechaObj ? this.formatDateStr(this.reagNuevaFechaObj) : '';
+    if (this.reagNuevaFecha) this.cargarFranjasReagendar();
   }
 
   // ── RF1: Buscar citas ──
@@ -325,6 +420,7 @@ export class Agendador implements OnInit {
           this.nuevaCita.email = paciente.email || '';
           this.nuevaCita.gender = paciente.gender || '';
           this.nuevaCita.birthDate = paciente.birthDate || '';
+          this.nuevaCitaNacimientoObj = paciente.birthDate ? new Date(paciente.birthDate + 'T00:00:00') : null;
           this.pacienteId = paciente.id;
           this.pacienteEncontrado = true;
           this.buscandoPaciente = false;
@@ -337,6 +433,7 @@ export class Agendador implements OnInit {
           this.nuevaCita.email = '';
           this.nuevaCita.gender = '';
           this.nuevaCita.birthDate = '';
+          this.nuevaCitaNacimientoObj = null;
           this.pacienteId = null;
           this.pacienteEncontrado = false;
           this.buscandoPaciente = false;
@@ -440,6 +537,8 @@ export class Agendador implements OnInit {
       fecha: '',
       startTime: ''
     };
+    this.nuevaCitaFechaObj = null;
+    this.nuevaCitaNacimientoObj = null;
     this.franjas = [];
     this.cdr.detectChanges();
   }
@@ -481,11 +580,13 @@ export class Agendador implements OnInit {
 
   seleccionarCitaReagendar(cita: any) {
     this.reagCitaSeleccionada = cita;
+    this.reagNuevaFechaObj = null;
     this.reagNuevaFecha = '';
     this.reagFranjas = [];
     this.reagNuevaHora = '';
     this.reagExito = '';
     this.reagErrorGuardar = '';
+    this.cargarHorarioMedico(cita.doctorId);
     this.cdr.detectChanges();
   }
 
@@ -546,5 +647,10 @@ export class Agendador implements OnInit {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  etiquetaEstado(status: string): string {
+    return { SCHEDULED: 'Programada', COMPLETED: 'Atendida', CANCELLED: 'Cancelada', NO_SHOW: 'No asistida' }
+    [status] || status;
   }
 }

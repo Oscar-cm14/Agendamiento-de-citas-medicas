@@ -9,10 +9,15 @@ import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatNativeDateModule } from '@angular/material/core';
+
 @Component({
   selector: 'app-medico',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, MatDatepickerModule, MatInputModule, MatFormFieldModule, MatNativeDateModule],
   templateUrl: './medico.html',
   styleUrl: './medico.css'
 })
@@ -33,6 +38,7 @@ export class Medico implements OnInit {
   fechaHoy        = '';
 
   // ── Pestaña: Buscar citas por fecha ───────────────────────
+  fechaBuscarObj: Date | null = null;
   fechaBuscar        = '';
   citasBuscar: any[] = [];
   buscando           = false;
@@ -63,6 +69,8 @@ export class Medico implements OnInit {
     fecha          : '',
     startTime      : ''
   };
+  nuevaCitaFechaObj: Date | null = null;
+  nuevaCitaNacimientoObj: Date | null = null;
   especialidadNueva      = '';
   medicosFiltradosNueva: any[] = [];
   franjasNueva: any[]    = [];
@@ -74,11 +82,13 @@ export class Medico implements OnInit {
   pacienteId: number | null = null;
 
   // ── Pestaña: Reagendar cita ────────────────────────────────
+  reagBuscarFechaObj: Date | null = null;
   reagBuscarFecha        = '';
   reagCitas: any[]       = [];
   reagBuscando           = false;
   reagError              = '';
   reagCitaSeleccionada: any = null;
+  reagNuevaFechaObj: Date | null = null;
   reagNuevaFecha         = '';
   reagFranjas: any[]     = [];
   reagNuevaHora          = '';
@@ -86,6 +96,15 @@ export class Medico implements OnInit {
   reagGuardando          = false;
   reagExito              = '';
   reagErrorGuardar       = '';
+
+  // ── HORARIOS Y FESTIVOS ──
+  doctorWorkingDays: string[] = [];
+  minDate = new Date();
+  festivosColombiaStr: string[] = [
+    '2024-01-01', '2024-01-08', '2024-03-25', '2024-03-28', '2024-03-29', '2024-05-01', '2024-05-13', '2024-06-03', '2024-06-10', '2024-07-01', '2024-07-20', '2024-08-07', '2024-08-19', '2024-10-14', '2024-11-04', '2024-11-11', '2024-12-08', '2024-12-25',
+    '2025-01-01', '2025-01-06', '2025-03-24', '2025-04-17', '2025-04-18', '2025-05-01', '2025-06-02', '2025-06-23', '2025-06-30', '2025-07-20', '2025-08-07', '2025-08-18', '2025-10-13', '2025-11-03', '2025-11-17', '2025-12-08', '2025-12-25',
+    '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03', '2026-05-01', '2026-05-18', '2026-06-08', '2026-06-15', '2026-06-29', '2026-07-20', '2026-08-07', '2026-08-17', '2026-10-12', '2026-11-02', '2026-11-16', '2026-12-08', '2026-12-25'
+  ];
 
   private apiUrl = 'http://localhost:8080/api/v1';
 
@@ -211,9 +230,10 @@ export class Medico implements OnInit {
         this.mensajeCancelacion = '✅ Cita cancelada exitosamente.';
         this.citaCancelando = null;
         this.motivoCancelacion = '';
-        this.cdr.detectChanges();
+       if (this.medicoId) {
+        this.cargarHorarioMedico(this.medicoId);
         this.cargarCitasHoy();
-        if (this.fechaBuscar) this.buscarCitas();
+      }  if (this.fechaBuscar) this.buscarCitas();
         setTimeout(() => { this.mensajeCancelacion = ''; this.cdr.detectChanges(); }, 4000);
       },
       error: (err) => {
@@ -227,6 +247,68 @@ export class Medico implements OnInit {
   // ══════════════════════════════════════════════════════════
   //  PESTAÑA: BUSCAR POR FECHA
   // ══════════════════════════════════════════════════════════
+
+  formatDateStr(d: Date): string {
+    if (!d) return '';
+    const year = d.getFullYear();
+    const month = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
+  }
+
+  dateFilter = (d: Date | null): boolean => {
+    if (!d) return false;
+    const day = d.getDay();
+    if (day === 0 || day === 6) return false;
+    const dateString = this.formatDateStr(d);
+    if (this.festivosColombiaStr.includes(dateString)) return false;
+    if (this.doctorWorkingDays.length > 0) {
+      const daysMap = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      if (!this.doctorWorkingDays.includes(daysMap[day])) return false;
+    }
+    return true;
+  };
+
+  dateClass = (d: Date): string => {
+    const dateString = this.formatDateStr(d);
+    return this.festivosColombiaStr.includes(dateString) ? 'holiday-date' : '';
+  };
+
+  onFechaBuscarChange() {
+    this.fechaBuscar = this.fechaBuscarObj ? this.formatDateStr(this.fechaBuscarObj) : '';
+  }
+
+  onNuevaCitaNacimientoChange() {
+    this.nuevaCita.birthDate = this.nuevaCitaNacimientoObj ? this.formatDateStr(this.nuevaCitaNacimientoObj) : '';
+  }
+
+  onNuevaCitaFechaChange() {
+    this.nuevaCita.fecha = this.nuevaCitaFechaObj ? this.formatDateStr(this.nuevaCitaFechaObj) : '';
+    if (this.nuevaCita.fecha) this.cargarFranjasNueva();
+  }
+
+  onReagBuscarFechaChange() {
+    this.reagBuscarFecha = this.reagBuscarFechaObj ? this.formatDateStr(this.reagBuscarFechaObj) : '';
+  }
+
+  onReagNuevaFechaChange() {
+    this.reagNuevaFecha = this.reagNuevaFechaObj ? this.formatDateStr(this.reagNuevaFechaObj) : '';
+    if (this.reagNuevaFecha) this.cargarFranjasReagendar();
+  }
+
+  cargarHorarioMedico(doctorId: number) {
+    if (!doctorId) {
+      this.doctorWorkingDays = [];
+      return;
+    }
+    this.http.get<any>(`${this.apiUrl}/doctors/schedules/${doctorId}`, { headers: this.headers() })
+      .subscribe({
+        next: (horario) => {
+          this.doctorWorkingDays = horario.workingDays || [];
+        },
+        error: () => this.doctorWorkingDays = []
+      });
+  }
 
   buscarCitas() {
     if (!this.medicoId || !this.fechaBuscar) return;
@@ -296,13 +378,23 @@ export class Medico implements OnInit {
     );
     this.nuevaCita.doctorId  = 0;
     this.franjasNueva        = [];
-    this.nuevaCita.startTime = '';
+    this.nuevaCitaFechaObj = null;
     this.nuevaCita.fecha     = '';
-
+    this.nuevaCita.startTime = '';
+    
     if (this.medicosFiltradosNueva.length === 1) {
       this.nuevaCita.doctorId = this.medicosFiltradosNueva[0].id;
+      this.cargarHorarioMedico(this.nuevaCita.doctorId);
     }
     this.cdr.detectChanges();
+  }
+
+  onDoctorChangeNuevaCita() {
+    this.nuevaCitaFechaObj = null;
+    this.nuevaCita.fecha = '';
+    this.franjasNueva = [];
+    this.nuevaCita.startTime = '';
+    this.cargarHorarioMedico(this.nuevaCita.doctorId);
   }
 
   buscarPacientePorCedula() {
@@ -316,14 +408,15 @@ export class Medico implements OnInit {
     const params = new HttpParams().set('identification', cedula);
     this.http.get<any>(`${this.apiUrl}/patients/by-identification`,
       { headers: this.headers(), params }).subscribe({
-        next: (p) => {
-          this.nuevaCita.firstName = p.firstName  || '';
-          this.nuevaCita.lastName  = p.lastName   || '';
-          this.nuevaCita.phone     = p.phone      || '';
-          this.nuevaCita.email     = p.email      || '';
-          this.nuevaCita.gender    = p.gender     || '';
-          this.nuevaCita.birthDate = p.birthDate  || '';
-          this.pacienteId          = p.id;
+        next: (paciente) => {
+          this.nuevaCita.firstName = paciente.firstName  || '';
+          this.nuevaCita.lastName  = paciente.lastName   || '';
+          this.nuevaCita.phone     = paciente.phone      || '';
+          this.nuevaCita.email     = paciente.email || '';
+          this.nuevaCita.gender    = paciente.gender || '';
+          this.nuevaCita.birthDate = paciente.birthDate || '';
+          this.nuevaCitaNacimientoObj = paciente.birthDate ? new Date(paciente.birthDate + 'T00:00:00') : null;
+          this.pacienteId          = paciente.id;
           this.pacienteEncontrado  = true;
           this.buscandoPaciente    = false;
           this.cdr.detectChanges();
@@ -335,6 +428,7 @@ export class Medico implements OnInit {
           this.nuevaCita.email     = '';
           this.nuevaCita.gender    = '';
           this.nuevaCita.birthDate = '';
+          this.nuevaCitaNacimientoObj = null;
           this.pacienteId          = null;
           this.pacienteEncontrado  = false;
           this.buscandoPaciente    = false;
@@ -438,7 +532,9 @@ export class Medico implements OnInit {
       fecha          : '',
       startTime      : ''
     };
-    this.franjasNueva = [];
+    this.nuevaCitaFechaObj = null;
+    this.nuevaCitaNacimientoObj = null;
+    this.franjasNueva       = [];
     this.cdr.detectChanges();
   }
 
@@ -477,11 +573,14 @@ export class Medico implements OnInit {
 
   seleccionarCitaReagendar(cita: any) {
     this.reagCitaSeleccionada = cita;
+    this.reagNuevaFechaObj    = null;
     this.reagNuevaFecha       = '';
     this.reagFranjas          = [];
     this.reagNuevaHora        = '';
     this.reagExito            = '';
     this.reagErrorGuardar     = '';
+    // Load doctor's schedule to filter the calendar correctly for the new date
+    this.cargarHorarioMedico(cita.doctorId || this.medicoId);
     this.cdr.detectChanges();
   }
 
@@ -525,12 +624,12 @@ export class Medico implements OnInit {
       payload, { headers: this.headers() }).subscribe({
         next: () => {
           this.reagGuardando    = false;
-          this.reagExito        = `✅ Cita de ${this.reagCitaSeleccionada.patientName} reagendada para el ${this.reagNuevaFecha} a las ${this.reagNuevaHora}`;
+          this.reagExito = `✅ Cita reagendada para el ${this.reagNuevaFecha} a las ${this.reagNuevaHora}`;
           this.reagCitaSeleccionada = null;
-          this.reagFranjas          = [];
-          this.reagNuevaHora        = '';
-          this.reagBuscarCitas();
-          this.cargarCitasHoy();
+          this.reagNuevaFechaObj = null;
+          this.reagFranjas = [];
+          this.reagNuevaHora = '';
+          this.reagBuscarCitas(); // refrescar lista original
           this.cdr.detectChanges();
           setTimeout(() => { this.reagExito = ''; this.cdr.detectChanges(); }, 5000);
         },
