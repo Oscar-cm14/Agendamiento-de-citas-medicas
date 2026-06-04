@@ -5,7 +5,9 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.Nullable;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -61,7 +63,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    public NotificationServiceImpl(JavaMailSender mailSender) {
+    @Autowired
+    public NotificationServiceImpl(@Nullable JavaMailSender mailSender) {
         this.mailSender  = mailSender;
         this.restTemplate = new RestTemplate();
     }
@@ -115,6 +118,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     private void enviarEmail(String destinatario, String asunto, String cuerpoHtml) {
 
+        if (mailSender == null) {
+            log.warn("[NOTIF-EMAIL] JavaMailSender no configurado. Se omite envío a {}", destinatario);
+            return;
+        }
         if (!emailEnabled) {
             log.info("[NOTIF-EMAIL] Canal deshabilitado. Se omite envío a {}", destinatario);
             return;
