@@ -7,15 +7,16 @@ import { Admin } from './admin/admin';
 import { Agendador } from './agendador/agendador';
 import { Medico } from './medico/medico';
 import { Ayuda } from './ayuda/ayuda';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: Page },
   { path: 'login', component: Login },
   { path: 'registro', component: Formulario },
-  { path: 'agendar', component: AgendarCita },
-  { path: 'admin', component: Admin },
-  { path: 'agendador', component: Agendador },
-  { path: 'medico', component: Medico },
-   { path: 'ayuda', component: Ayuda },
+  { path: 'agendar',   component: AgendarCita, canActivate: [authGuard] },
+  { path: 'admin',     component: Admin,       canActivate: [authGuard] },
+  { path: 'agendador', component: Agendador,   canActivate: [authGuard] },
+  { path: 'medico',    component: Medico,      canActivate: [authGuard] },
+  { path: 'ayuda', component: Ayuda },
   { path: '**', redirectTo: '' }
 ];

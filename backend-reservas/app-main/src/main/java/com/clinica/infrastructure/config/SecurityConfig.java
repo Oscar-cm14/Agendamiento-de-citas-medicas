@@ -138,9 +138,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        // CORS: agrega aquí el dominio exacto que Vercel te asigne
+        String vercelUrl = System.getenv("FRONTEND_URL") != null
+                ? System.getenv("FRONTEND_URL")
+                : "https://agendamiento-de-citas-medicas.vercel.app";
+
         config.setAllowedOrigins(List.of(
             "http://localhost:4200",
-            "https://agendamiento-de-citas-medicas.vercel.app"
+            "https://agendamiento-de-citas-medicas.vercel.app",
+            vercelUrl
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

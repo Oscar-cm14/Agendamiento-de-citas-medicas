@@ -1,4 +1,6 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "spring-boot.ls.java.home": "c:\\Users\\Katherine\\.vscode\\extensions\\redhat.java-1.54.0-win32-x64\\jre\\21.0.10-win32-x86_64",
+    "spring-boot.ls.vmargs": "-Xmx1024m"
 }
