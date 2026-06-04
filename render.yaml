@@ -1,7 +1,7 @@
 # =============================================================================
 # render.yaml — Configuración de despliegue en Render.com
 # =============================================================================
-# Render.com es GRATUITO y NO pide tarjeta de crédito para el plan Free.
+# R
 #
 # Este archivo define los servicios que Render despliega automáticamente
 # cuando haces push a la rama main.

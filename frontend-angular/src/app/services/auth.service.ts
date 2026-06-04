@@ -22,7 +22,7 @@ export class AuthService {
   login(username: string, password: string): Observable<any> {
 
     return this.http.post<any>(
-      `${this.apiUrl}/auth/login`,
+      `${this.apiUrl}/users/login`,
       {
         username,
         password

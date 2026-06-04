@@ -1,0 +1,8 @@
+# Ignorar archivos innecesarios en el build de Docker
+**/target/
+**/.git/
+**/logs/
+**/data/
+**/*.log
+**/node_modules/
+.env

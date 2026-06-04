@@ -12,6 +12,8 @@ import com.clinica.users.domain.entities.User;
 import com.clinica.users.infrastructure.repositories.PatientRepository;
 import com.clinica.users.infrastructure.repositories.PersonRepository;
 import com.clinica.users.infrastructure.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,8 @@ import java.util.Optional;
 
 @Service
 public class PatientServiceImpl implements PatientService {
+
+    private static final Logger log = LoggerFactory.getLogger(PatientServiceImpl.class);
 
     private final UserRepository       userRepository;
     private final PatientRepository    patientRepository;
@@ -64,9 +68,12 @@ public class PatientServiceImpl implements PatientService {
                 try {
                     keycloakAdminService.updatePassword(username, request.password());
                     keycloakActualizado = true;
-                } catch (Exception ignored) { }
+                    log.info("Re-sync: contraseña actualizada en Keycloak para '{}'", username);
+                } catch (Exception e) {
+                    log.warn("Re-sync: no se pudo actualizar contraseña en Keycloak para '{}': {}", username, e.getMessage());
+                }
 
-                // 2. Si no existía en Keycloak, crearlo
+                // 2. Si no existía en Keycloak, crearlo ahora
                 if (!keycloakActualizado) {
                     try {
                         keycloakAdminService.createUser(
@@ -77,15 +84,14 @@ public class PatientServiceImpl implements PatientService {
                                 p.getLastName(),
                                 "PATIENT"
                         );
-                    } catch (Exception ignored) { }
-
-                    // 3. Reintentar actualizar tras crearlo
-                    try {
-                        keycloakAdminService.updatePassword(username, request.password());
-                    } catch (Exception ignored) { }
+                        log.info("Re-sync: usuario '{}' creado en Keycloak.", username);
+                        keycloakActualizado = true;
+                    } catch (Exception e) {
+                        log.error("Re-sync: no se pudo crear '{}' en Keycloak: {}", username, e.getMessage());
+                    }
                 }
 
-                // 4. Actualizar contraseña en H2
+                // 3. Actualizar contraseña en H2
                 userRepository.findAll().stream()
                         .filter(u -> u.getPerson() != null
                                   && u.getPerson().getId().equals(p.getId()))
@@ -94,9 +100,13 @@ public class PatientServiceImpl implements PatientService {
                             u.setPassword(passwordEncoder.encode(request.password()));
                             userRepository.save(u);
                         });
+
+                if (!keycloakActualizado) {
+                    log.error("Re-sync FALLIDO para '{}': el usuario no pudo sincronizarse con Keycloak.", username);
+                }
             }
 
-            return new PatientResponse(p.getId(), fullName, username, p.getEmail());
+            return new PatientResponse(p.getId(), fullName, username, p.getEmail(), true);
         }
 
         if (userRepository.findByUsername(request.username()).isPresent()) {
@@ -136,7 +146,8 @@ public class PatientServiceImpl implements PatientService {
                 savedPatient.getId(),
                 fullName,
                 savedUser.getUsername(),
-                savedPatient.getEmail()
+                savedPatient.getEmail(),
+                false
         );
     }
 

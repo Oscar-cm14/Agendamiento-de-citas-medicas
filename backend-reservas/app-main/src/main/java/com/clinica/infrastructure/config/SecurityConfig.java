@@ -140,7 +140,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        
         // Cargar URLs del frontend desde variable de entorno, si existe
         String frontendUrls = System.getenv("FRONTEND_URL");
         List<String> allowedOrigins = new ArrayList<>(List.of(

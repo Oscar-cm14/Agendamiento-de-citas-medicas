@@ -9,7 +9,7 @@ package com.clinica.system;
  * Diferencia con integración: aquí se encadenan MÚLTIPLES pasos.
  * BusinessRuleException → 409 CONFLICT (ver GlobalExceptionHandler)
  */
-
+/**crear manual , autonoma */
 import com.clinica.config.TestSecurityConfig;
 import com.clinica.doctors.domain.entities.Doctor;
 import com.clinica.doctors.domain.entities.DoctorSchedule;

@@ -14,6 +14,20 @@ jobs:
 
   # ===========================================================================
   # JOB 1: CI BACKEND
+  # ---------------------------------------------------------------------------
+  # PROPÓSITO: Verificar que el código del backend compila correctamente y que
+  #            todos los tests pasan antes de permitir cualquier despliegue.
+  #
+  # CUÁNDO CORRE: En todo push a main/develop y en PRs hacia main.
+  #
+  # QUÉ HACE:
+  #   1. Compila el proyecto Spring Boot con Maven (sin ejecutar tests todavía).
+  #   2. Ejecuta todos los tests con el perfil "test" (usa H2 en memoria).
+  #      Incluye: tests unitarios, de integración, del sistema y de aceptación.
+  #   3. Sube el reporte XML de Surefire como artefacto (disponible 7 días
+  #      en la pestaña Actions de GitHub para revisar fallas).
+  #
+  # SI FALLA: El pipeline se detiene y NO se despliega nada.
   # ===========================================================================
   ci-backend:
     name: "CI — Backend (Spring Boot + Tests)"
@@ -53,6 +67,20 @@ jobs:
 
   # ===========================================================================
   # JOB 2: CI FRONTEND
+  # ---------------------------------------------------------------------------
+  # PROPÓSITO: Verificar que el código Angular compila en modo producción sin
+  #            errores antes de permitir cualquier despliegue.
+  #
+  # CUÁNDO CORRE: En todo push a main/develop y en PRs hacia main.
+  #              Corre en PARALELO con el Job 1 (no depende del backend).
+  #
+  # QUÉ HACE:
+  #   1. Instala todas las dependencias npm (node_modules).
+  #   2. Ejecuta el build de producción (--configuration production), lo que
+  #      activa optimizaciones como tree-shaking y minificación.
+  #      Esto detecta errores de TypeScript, imports rotos y rutas inválidas.
+  #
+  # SI FALLA: El pipeline se detiene y NO se despliega nada.
   # ===========================================================================
   ci-frontend:
     name: "CI — Frontend (Angular)"
@@ -80,7 +108,25 @@ jobs:
         run: npm run build -- --configuration production
 
   # ===========================================================================
-  # JOB 3: CD — Deploy en Render (solo en push a main)
+  # JOB 3: CD — Deploy Backend en Render (solo en push a main)
+  # ---------------------------------------------------------------------------
+  # PROPÓSITO: Desplegar automáticamente el backend en Render.com cada vez
+  #            que se fusiona código a la rama principal (main).
+  #
+  # CUÁNDO CORRE: SOLO en push directo a main (no en PRs ni en develop).
+  #              REQUIERE que Job 1 (CI Backend) y Job 2 (CI Frontend) hayan
+  #              pasado exitosamente (needs: [ci-backend, ci-frontend]).
+  #
+  # QUÉ HACE:
+  #   1. Llama al webhook de Render mediante un HTTP POST (curl).
+  #      Render recibe la señal y descarga el código nuevo desde GitHub,
+  #      compila el JAR y reinicia el servicio.
+  #   2. El secret RENDER_DEPLOY_HOOK_URL debe estar configurado en
+  #      GitHub → Settings → Secrets and variables → Actions.
+  #      Si no está configurado, el job avisa pero no falla el pipeline.
+  #
+  # RESULTADO: El backend queda desplegado en Render con la versión del
+  #            commit que triggereó el push.
   # ===========================================================================
   cd-deploy-backend:
     name: "CD — Deploy Backend en Render"
@@ -99,7 +145,23 @@ jobs:
           fi
 
   # ===========================================================================
-  # JOB 4: CD — Frontend en Vercel
+  # JOB 4: CD — Deploy Frontend en Vercel (solo en push a main)
+  # ---------------------------------------------------------------------------
+  # PROPÓSITO: Confirmar y registrar el despliegue del frontend en Vercel
+  #            cada vez que se fusiona código a main.
+  #
+  # CUÁNDO CORRE: SOLO en push directo a main (no en PRs ni en develop).
+  #              REQUIERE que Job 1 (CI Backend) y Job 2 (CI Frontend) hayan
+  #              pasado exitosamente (needs: [ci-backend, ci-frontend]).
+  #
+  # QUÉ HACE:
+  #   Vercel tiene integración nativa con GitHub: detecta automáticamente
+  #   cualquier push a main y lanza un nuevo despliegue por su cuenta.
+  #   Este job existe para dejar trazabilidad en el pipeline de GitHub Actions
+  #   y asegurar que el frontend solo se despliega si los CI previos pasaron.
+  #
+  # RESULTADO: El frontend Angular queda desplegado en Vercel con la versión
+  #            del commit que triggereó el push.
   # ===========================================================================
   cd-deploy-frontend:
     name: "CD — Deploy Frontend en Vercel"
