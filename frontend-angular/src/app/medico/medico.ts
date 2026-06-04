@@ -14,10 +14,15 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { environment } from '../../environments/environment';
 
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatNativeDateModule } from '@angular/material/core';
+
 @Component({
   selector: 'app-medico',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule, RouterLink, MatDatepickerModule, MatInputModule, MatFormFieldModule, MatNativeDateModule],
   templateUrl: './medico.html',
   styleUrl: './medico.css'
 })
@@ -26,26 +31,27 @@ export class Medico implements OnInit {
   pestanaActiva = 'agenda';
 
   // Info del médico autenticado
-  medicoNombre       = '';
+  medicoNombre = '';
   medicoEspecialidad = '';
-  medicoSkills       = '';
+  medicoSkills = '';
   medicoId: number | null = null;
 
   // ── Pestaña: Agenda ──
-  fechaAgenda        = '';
+  fechaAgenda = '';
   citasAgenda: any[] = [];
-  cargandoAgenda     = false;
-  errorAgenda        = '';
-  mensajeAccion      = '';
+  cargandoAgenda = false;
+  errorAgenda = '';
+  mensajeAccion = '';
   procesandoCitaId: number | null = null;
 
-  // ── Pestaña: Buscar citas por fecha ──
-  fechaBuscar        = '';
+  // ── Pestaña: Buscar citas por fecha ───────────────────────
+  fechaBuscarObj: Date | null = null;
+  fechaBuscar = '';
   citasBuscar: any[] = [];
-  buscando           = false;
-  errorBuscar        = '';
-  exportando         = false;
-  mensajeExport      = '';
+  buscando = false;
+  errorBuscar = '';
+  exportando = false;
+  mensajeExport = '';
 
   // ── Cancelar cita (modal) ──
   citaCancelando: any = null;
@@ -55,45 +61,58 @@ export class Medico implements OnInit {
   mensajeCancelacion = '';
 
   // ── Pestaña: Agendar nueva cita ──
-  todosMedicos: any[]    = [];
+  todosMedicos: any[] = [];
   especialidades: string[] = [];
   nuevaCita = {
-    identification : '',
-    firstName      : '',
-    lastName       : '',
-    phone          : '',
-    gender         : '',
-    birthDate      : '',
-    email          : '',
-    doctorId       : 0,
-    fecha          : '',
-    startTime      : '',
-    prioritaria    : false,
+    identification: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    gender: '',
+    birthDate: '',
+    email: '',
+    doctorId: 0,
+    fecha: '',
+    startTime: '',
+    prioritaria: false,
     motivoPrioridad: ''
   };
-  especialidadNueva      = '';
+  nuevaCitaFechaObj: Date | null = null;
+  nuevaCitaNacimientoObj: Date | null = null;
+  especialidadNueva = '';
   medicosFiltradosNueva: any[] = [];
-  franjasNueva: any[]    = [];
-  citaCreada             = false;
-  errorCita              = '';
-  cargandoCita           = false;
-  buscandoPaciente       = false;
-  pacienteEncontrado     = false;
+  franjasNueva: any[] = [];
+  citaCreada = false;
+  errorCita = '';
+  cargandoCita = false;
+  buscandoPaciente = false;
+  pacienteEncontrado = false;
   pacienteId: number | null = null;
 
-  // ── Pestaña: Reagendar cita ──
-  reagBuscarFecha        = '';
-  reagCitas: any[]       = [];
-  reagBuscando           = false;
-  reagError              = '';
+  // ── Pestaña: Reagendar cita ────────────────────────────────
+  reagBuscarFechaObj: Date | null = null;
+  reagBuscarFecha = '';
+  reagCitas: any[] = [];
+  reagBuscando = false;
+  reagError = '';
   reagCitaSeleccionada: any = null;
-  reagNuevaFecha         = '';
-  reagFranjas: any[]     = [];
-  reagNuevaHora          = '';
-  reagCargandoFranjas    = false;
-  reagGuardando          = false;
-  reagExito              = '';
-  reagErrorGuardar       = '';
+  reagNuevaFechaObj: Date | null = null;
+  reagNuevaFecha = '';
+  reagFranjas: any[] = [];
+  reagNuevaHora = '';
+  reagCargandoFranjas = false;
+  reagGuardando = false;
+  reagExito = '';
+  reagErrorGuardar = '';
+
+  // ── HORARIOS Y FESTIVOS ──
+  doctorWorkingDays: string[] = [];
+  minDate = new Date();
+  festivosColombiaStr: string[] = [
+    '2024-01-01', '2024-01-08', '2024-03-25', '2024-03-28', '2024-03-29', '2024-05-01', '2024-05-13', '2024-06-03', '2024-06-10', '2024-07-01', '2024-07-20', '2024-08-07', '2024-08-19', '2024-10-14', '2024-11-04', '2024-11-11', '2024-12-08', '2024-12-25',
+    '2025-01-01', '2025-01-06', '2025-03-24', '2025-04-17', '2025-04-18', '2025-05-01', '2025-06-02', '2025-06-23', '2025-06-30', '2025-07-20', '2025-08-07', '2025-08-18', '2025-10-13', '2025-11-03', '2025-11-17', '2025-12-08', '2025-12-25',
+    '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03', '2026-05-01', '2026-05-18', '2026-06-08', '2026-06-15', '2026-06-29', '2026-07-20', '2026-08-07', '2026-08-17', '2026-10-12', '2026-11-02', '2026-11-16', '2026-12-08', '2026-12-25'
+  ];
 
   // ── Pestaña: Prioritarias ──
   priorFechaDesde = '';
@@ -119,7 +138,7 @@ export class Medico implements OnInit {
 
   get perfilPasswordMismatch(): boolean {
     return !!this.perfilNuevoPassword &&
-           this.perfilNuevoPassword !== this.perfilConfirmPassword;
+      this.perfilNuevoPassword !== this.perfilConfirmPassword;
   }
 
   private apiUrl = environment.apiUrl;
@@ -147,10 +166,10 @@ export class Medico implements OnInit {
   cargarDatosMedico() {
     this.http.get<any>(`${this.apiUrl}/doctors/me`, { headers: this.headers() }).subscribe({
       next: (data) => {
-        this.medicoId           = data.id;
-        this.medicoNombre       = data.fullName || `${data.firstName} ${data.lastName}`;
+        this.medicoId = data.id;
+        this.medicoNombre = data.fullName || `${data.firstName} ${data.lastName}`;
         this.medicoEspecialidad = data.specialty || '';
-        this.medicoSkills       = data.skills    || '';
+        this.medicoSkills = data.skills || '';
         localStorage.setItem('nombreUsuario', this.medicoNombre);
         localStorage.setItem('userId', String(data.id));
         this.nuevaCita.doctorId = data.id;
@@ -292,6 +311,68 @@ export class Medico implements OnInit {
   //  PESTAÑA: BUSCAR POR FECHA
   // ══════════════════════════════════════════════════════════
 
+  formatDateStr(d: Date): string {
+    if (!d) return '';
+    const year = d.getFullYear();
+    const month = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
+  }
+
+  dateFilter = (d: Date | null): boolean => {
+    if (!d) return false;
+    const day = d.getDay();
+    if (day === 0 || day === 6) return false;
+    const dateString = this.formatDateStr(d);
+    if (this.festivosColombiaStr.includes(dateString)) return false;
+    if (this.doctorWorkingDays.length > 0) {
+      const daysMap = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      if (!this.doctorWorkingDays.includes(daysMap[day])) return false;
+    }
+    return true;
+  };
+
+  dateClass = (d: Date): string => {
+    const dateString = this.formatDateStr(d);
+    return this.festivosColombiaStr.includes(dateString) ? 'holiday-date' : '';
+  };
+
+  onFechaBuscarChange() {
+    this.fechaBuscar = this.fechaBuscarObj ? this.formatDateStr(this.fechaBuscarObj) : '';
+  }
+
+  onNuevaCitaNacimientoChange() {
+    this.nuevaCita.birthDate = this.nuevaCitaNacimientoObj ? this.formatDateStr(this.nuevaCitaNacimientoObj) : '';
+  }
+
+  onNuevaCitaFechaChange() {
+    this.nuevaCita.fecha = this.nuevaCitaFechaObj ? this.formatDateStr(this.nuevaCitaFechaObj) : '';
+    if (this.nuevaCita.fecha) this.cargarFranjasNueva();
+  }
+
+  onReagBuscarFechaChange() {
+    this.reagBuscarFecha = this.reagBuscarFechaObj ? this.formatDateStr(this.reagBuscarFechaObj) : '';
+  }
+
+  onReagNuevaFechaChange() {
+    this.reagNuevaFecha = this.reagNuevaFechaObj ? this.formatDateStr(this.reagNuevaFechaObj) : '';
+    if (this.reagNuevaFecha) this.cargarFranjasReagendar();
+  }
+
+  cargarHorarioMedico(doctorId: number) {
+    if (!doctorId) {
+      this.doctorWorkingDays = [];
+      return;
+    }
+    this.http.get<any>(`${this.apiUrl}/doctors/schedules/${doctorId}`, { headers: this.headers() })
+      .subscribe({
+        next: (horario) => {
+          this.doctorWorkingDays = horario.workingDays || [];
+        },
+        error: () => this.doctorWorkingDays = []
+      });
+  }
+
   buscarCitas() {
     if (!this.medicoId || !this.fechaBuscar) return;
     this.buscando = true;
@@ -358,14 +439,26 @@ export class Medico implements OnInit {
     this.medicosFiltradosNueva = this.todosMedicos.filter(m => m.specialty === this.especialidadNueva);
     this.nuevaCita.doctorId = 0;
     this.franjasNueva = [];
-    this.nuevaCita.startTime = '';
+    this.nuevaCitaFechaObj = null;
     this.nuevaCita.fecha = '';
+    this.nuevaCita.startTime = '';
+
     if (this.medicosFiltradosNueva.length === 1) {
       this.nuevaCita.doctorId = this.medicosFiltradosNueva[0].id;
+      this.cargarHorarioMedico(this.nuevaCita.doctorId);
     } else if (this.medicosFiltradosNueva.length === 0 && this.medicoId) {
       this.nuevaCita.doctorId = this.medicoId;
+      this.cargarHorarioMedico(this.nuevaCita.doctorId);
     }
     this.cdr.detectChanges();
+  }
+
+  onDoctorChangeNuevaCita() {
+    this.nuevaCitaFechaObj = null;
+    this.nuevaCita.fecha = '';
+    this.franjasNueva = [];
+    this.nuevaCita.startTime = '';
+    this.cargarHorarioMedico(this.nuevaCita.doctorId);
   }
 
   buscarPacientePorCedula() {
@@ -379,20 +472,28 @@ export class Medico implements OnInit {
     const params = new HttpParams().set('identification', cedula);
     this.http.get<any>(`${this.apiUrl}/patients/by-identification`,
       { headers: this.headers(), params }).subscribe({
-        next: (p) => {
-          this.nuevaCita.firstName = p.firstName || '';
-          this.nuevaCita.lastName = p.lastName || '';
-          this.nuevaCita.phone = p.phone || '';
-          this.nuevaCita.email = p.email || '';
-          this.nuevaCita.birthDate = p.birthDate || '';
-          this.nuevaCita.gender = p.gender ? p.gender.toUpperCase() : '';
-          this.pacienteId = p.id;
+        next: (paciente) => {
+          this.nuevaCita.firstName = paciente.firstName || '';
+          this.nuevaCita.lastName = paciente.lastName || '';
+          this.nuevaCita.phone = paciente.phone || '';
+          this.nuevaCita.email = paciente.email || '';
+          this.nuevaCita.gender = paciente.gender ? paciente.gender.toUpperCase() : '';
+          this.nuevaCita.birthDate = paciente.birthDate || '';
+          this.nuevaCitaNacimientoObj = paciente.birthDate ? new Date(paciente.birthDate + 'T00:00:00') : null;
+          this.pacienteId = paciente.id;
           this.pacienteEncontrado = true;
           this.buscandoPaciente = false;
           this.cdr.detectChanges();
           if (this.nuevaCita.fecha) this.cargarFranjasNueva();
         },
         error: () => {
+          this.nuevaCita.firstName = '';
+          this.nuevaCita.lastName = '';
+          this.nuevaCita.phone = '';
+          this.nuevaCita.email = '';
+          this.nuevaCita.gender = '';
+          this.nuevaCita.birthDate = '';
+          this.nuevaCitaNacimientoObj = null;
           this.pacienteId = null;
           this.pacienteEncontrado = false;
           this.buscandoPaciente = false;
@@ -521,6 +622,8 @@ export class Medico implements OnInit {
       prioritaria: false,
       motivoPrioridad: ''
     };
+    this.nuevaCitaFechaObj = null;
+    this.nuevaCitaNacimientoObj = null;
     this.franjasNueva = [];
     this.cdr.detectChanges();
   }
@@ -560,11 +663,14 @@ export class Medico implements OnInit {
 
   seleccionarCitaReagendar(cita: any) {
     this.reagCitaSeleccionada = cita;
+    this.reagNuevaFechaObj = null;
     this.reagNuevaFecha = '';
     this.reagFranjas = [];
     this.reagNuevaHora = '';
     this.reagExito = '';
     this.reagErrorGuardar = '';
+    // Load doctor's schedule to filter the calendar correctly for the new date
+    this.cargarHorarioMedico(cita.doctorId || this.medicoId);
     this.cdr.detectChanges();
   }
 
@@ -621,6 +727,7 @@ export class Medico implements OnInit {
           this.reagGuardando = false;
           this.reagExito = `✅ Cita de ${this.reagCitaSeleccionada.patientName} reagendada para el ${this.reagNuevaFecha} a las ${this.reagNuevaHora}`;
           this.reagCitaSeleccionada = null;
+          this.reagNuevaFechaObj = null;
           this.reagFranjas = [];
           this.reagNuevaHora = '';
           this.reagBuscarCitas();
@@ -803,10 +910,10 @@ export class Medico implements OnInit {
 
   badgeUrgencia(nivel: string): string {
     switch (nivel) {
-      case 'HIGH':   return 'bg-danger';
+      case 'HIGH': return 'bg-danger';
       case 'MEDIUM': return 'bg-warning text-dark';
-      case 'LOW':    return 'bg-info text-dark';
-      default:       return 'bg-secondary';
+      case 'LOW': return 'bg-info text-dark';
+      default: return 'bg-secondary';
     }
   }
 

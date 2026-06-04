@@ -180,8 +180,12 @@
 
       <div class="row g-3 mb-3 align-items-end">
         <div class="col-md-4">
-          <label class="form-label fw-semibold">Fecha de Consulta</label>
-          <input type="date" class="form-control" [(ngModel)]="fechaBuscar" />
+          <label class="form-label fw-semibold">Fecha</label>
+          <div class="input-group">
+            <input class="form-control bg-white" [matDatepicker]="pickerBuscar" [(ngModel)]="fechaBuscarObj" (ngModelChange)="onFechaBuscarChange()" [matDatepickerFilter]="dateFilter" [min]="minDate" readonly>
+            <button class="btn btn-outline-secondary" type="button" (click)="pickerBuscar.open()">📅</button>
+            <mat-datepicker #pickerBuscar [dateClass]="dateClass"></mat-datepicker>
+          </div>
         </div>
         <div class="col-md-2">
           <button class="btn btn-primary w-100"
@@ -329,8 +333,11 @@
 
           <div class="col-md-6">
             <label class="form-label">Fecha de nacimiento <span class="text-muted">(opcional)</span></label>
-            <input type="date" class="form-control" [(ngModel)]="nuevaCita.birthDate"
-                   [readonly]="pacienteEncontrado" />
+            <div class="input-group">
+              <input class="form-control bg-white" [matDatepicker]="pickerNacimiento" [(ngModel)]="nuevaCitaNacimientoObj" (ngModelChange)="onNuevaCitaNacimientoChange()" [disabled]="pacienteEncontrado" readonly>
+              <button class="btn btn-outline-secondary" type="button" (click)="pickerNacimiento.open()" [disabled]="pacienteEncontrado">📅</button>
+              <mat-datepicker #pickerNacimiento></mat-datepicker>
+            </div>
           </div>
 
           <div class="col-md-6">
@@ -360,8 +367,13 @@
 
           <div class="col-md-6">
             <label class="form-label fw-semibold">Fecha *</label>
-            <input type="date" class="form-control"
-                   [(ngModel)]="nuevaCita.fecha" (change)="cargarFranjasNueva()" />
+            <div class="input-group">
+              <input class="form-control bg-white" [matDatepicker]="pickerNueva" [(ngModel)]="nuevaCitaFechaObj"
+                     (ngModelChange)="onNuevaCitaFechaChange()"
+                     [matDatepickerFilter]="dateFilter" [min]="minDate" readonly>
+              <button class="btn btn-outline-secondary" type="button" (click)="pickerNueva.open()">📅</button>
+              <mat-datepicker #pickerNueva [dateClass]="dateClass"></mat-datepicker>
+            </div>
           </div>
 
           <div class="col-12" *ngIf="nuevaCita.fecha">
@@ -440,7 +452,11 @@
         <div class="row g-3 align-items-end mb-3">
           <div class="col-md-4">
             <label class="form-label fw-semibold">Fecha actual de la cita</label>
-            <input type="date" class="form-control" [(ngModel)]="reagBuscarFecha" />
+            <div class="input-group">
+              <input class="form-control bg-white" [matDatepicker]="pickerReagBuscar" [(ngModel)]="reagBuscarFechaObj" (ngModelChange)="onReagBuscarFechaChange()" readonly>
+              <button class="btn btn-outline-secondary" type="button" (click)="pickerReagBuscar.open()">📅</button>
+              <mat-datepicker #pickerReagBuscar></mat-datepicker>
+            </div>
           </div>
           <div class="col-md-2 d-flex align-items-end">
             <button class="btn btn-outline-primary w-100"
@@ -488,8 +504,13 @@
         <div class="row g-3 align-items-end mb-3">
           <div class="col-md-4">
             <label class="form-label fw-semibold">Nueva fecha</label>
-            <input type="date" class="form-control" [(ngModel)]="reagNuevaFecha"
-                   (change)="cargarFranjasReagendar()" />
+            <div class="input-group">
+              <input class="form-control bg-white" [matDatepicker]="pickerReagNueva" [(ngModel)]="reagNuevaFechaObj"
+                     (ngModelChange)="onReagNuevaFechaChange()"
+                     [matDatepickerFilter]="dateFilter" [min]="minDate" readonly>
+              <button class="btn btn-outline-secondary" type="button" (click)="pickerReagNueva.open()">📅</button>
+              <mat-datepicker #pickerReagNueva [dateClass]="dateClass"></mat-datepicker>
+            </div>
           </div>
           <div class="col-md-3" *ngIf="reagCargandoFranjas">
             <span class="spinner-border spinner-border-sm text-primary"></span>
