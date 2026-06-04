@@ -17,6 +17,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -138,16 +140,18 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // CORS: agrega aquí el dominio exacto que Vercel te asigne
-        String vercelUrl = System.getenv("FRONTEND_URL") != null
-                ? System.getenv("FRONTEND_URL")
-                : "https://agendamiento-de-citas-medicas.vercel.app";
-
-        config.setAllowedOrigins(List.of(
+        // Cargar URLs del frontend desde variable de entorno, si existe
+        String frontendUrls = System.getenv("FRONTEND_URL");
+        List<String> allowedOrigins = new ArrayList<>(List.of(
             "http://localhost:4200",
-            "https://agendamiento-de-citas-medicas.vercel.app",
-            vercelUrl
+            "https://agendamiento-de-citas-medicas.vercel.app"
         ));
+        
+        if (frontendUrls != null && !frontendUrls.isEmpty()) {
+            allowedOrigins.addAll(Arrays.asList(frontendUrls.split(",")));
+        }
+        
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
