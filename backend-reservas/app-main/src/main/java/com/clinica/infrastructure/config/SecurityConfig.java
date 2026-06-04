@@ -144,14 +144,15 @@ public class SecurityConfig {
         String frontendUrls = System.getenv("FRONTEND_URL");
         List<String> allowedOrigins = new ArrayList<>(List.of(
             "http://localhost:4200",
-            "https://agendamiento-de-citas-medicas.vercel.app"
+            "https://agendamiento-de-citas-medicas.vercel.app",
+            "https://*.vercel.app" // Permitir cualquier URL dinámica de Vercel
         ));
         
         if (frontendUrls != null && !frontendUrls.isEmpty()) {
             allowedOrigins.addAll(Arrays.asList(frontendUrls.split(",")));
         }
         
-        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
