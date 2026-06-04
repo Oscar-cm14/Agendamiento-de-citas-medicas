@@ -32,6 +32,10 @@ services:
 
     # Puerto que usa el backend
     envVars:
+      # ── Java Version ───────────────────────────────────────────────────────
+      - key: JAVA_VERSION
+        value: "21"
+        
       # ── Base de datos (Neon PostgreSQL) ────────────────────────────────────
       # Neon.tech da PostgreSQL GRATIS sin tarjeta
       # Copia la DATABASE_URL desde Neon y pégala en Render → Environment
