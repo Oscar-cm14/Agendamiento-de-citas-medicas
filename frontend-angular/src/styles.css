@@ -140,7 +140,8 @@ footer a:hover {
 
 /* 2. Forzamos los colores en el círculo del número para los festivos */
 .mat-calendar-body-cell.holiday-date .mat-calendar-body-cell-content {
-    color: #d32f2f !important;
+    background-color: #dc3545 !important;
+    color: white !important;
     opacity: 1 !important;
     font-weight: bold !important;
     border-radius: 50% !important;

@@ -333,11 +333,7 @@
 
           <div class="col-md-6">
             <label class="form-label">Fecha de nacimiento <span class="text-muted">(opcional)</span></label>
-            <div class="input-group">
-              <input class="form-control bg-white" [matDatepicker]="pickerNacimiento" [(ngModel)]="nuevaCitaNacimientoObj" (ngModelChange)="onNuevaCitaNacimientoChange()" [disabled]="pacienteEncontrado" readonly>
-              <button class="btn btn-outline-secondary" type="button" (click)="pickerNacimiento.open()" [disabled]="pacienteEncontrado">📅</button>
-              <mat-datepicker #pickerNacimiento></mat-datepicker>
-            </div>
+            <input type="date" class="form-control" [(ngModel)]="nuevaCita.birthDate" [disabled]="pacienteEncontrado">
           </div>
 
           <div class="col-md-6">
