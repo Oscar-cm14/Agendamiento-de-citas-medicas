@@ -6,7 +6,7 @@
 // ============================================================
 
 export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:8080/api/v1',
-  keycloakUrl: 'http://localhost:8081'
+  production: true,
+  apiUrl: 'https://clinica-backend.onrender.com/api/v1',
+  keycloakUrl: 'https://clinica-keycloak.onrender.com'
 };
