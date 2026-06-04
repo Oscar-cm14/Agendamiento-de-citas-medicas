@@ -1,8 +1,8 @@
 {
+  "buildCommand": "npm run build -- --configuration production --output-mode static",
+  "outputDirectory": "dist/ProyectoSoftwarePI/browser",
+  "installCommand": "npm install --legacy-peer-deps",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "buildCommand": "npm run build -- --configuration production",
-  "outputDirectory": "dist/frontend-angular/browser",
-  "installCommand": "npm install"
+  ]
 }
