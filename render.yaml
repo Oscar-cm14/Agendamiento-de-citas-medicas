@@ -114,3 +114,5 @@ services:
         value: "false"
       - key: KC_HTTP_ENABLED
         value: "true"
+      - key: KC_PROXY_HEADERS
+        value: "xforwarded"
