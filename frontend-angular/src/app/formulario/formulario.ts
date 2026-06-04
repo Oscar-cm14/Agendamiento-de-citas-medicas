@@ -145,7 +145,7 @@ export class Formulario {
       lastName: this.apellidos.trim(),
       phone: `${this.codigoPais} ${this.celular.trim()}`,
       gender: this.genero,
-      email: this.email,
+      email: this.email && this.email.trim() !== '' ? this.email : `${this.identificacion}@sincorreo.com`,
       username: this.identificacion,
       password: this.contrasena
     };
