@@ -17,18 +17,14 @@ services:
   # ── Backend Spring Boot ────────────────────────────────────────────────────
   - type: web
     name: clinica-backend
-    runtime: java
+    runtime: docker
     plan: free               # plan gratuito de Render
 
     # Directorio del backend dentro del repositorio
     rootDir: backend-reservas
 
-    # Comando para compilar el proyecto
-    buildCommand: mvn clean package -DskipTests -B
-
-    # Comando para iniciar el backend
-    # El archivo JAR se genera en app-main/target/
-    startCommand: java -Djava.security.egd=file:/dev/./urandom -jar app-main/target/*.jar
+    # Usar el Dockerfile para construir la app Java
+    dockerfilePath: ./Dockerfile
 
     # Puerto que usa el backend
     envVars:
