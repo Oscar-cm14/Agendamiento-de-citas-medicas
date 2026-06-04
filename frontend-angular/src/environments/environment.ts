@@ -7,6 +7,6 @@
 
 export const environment = {
   production: true,
-  apiUrl: 'https://clinica-backend.onrender.com/api/v1',
+  apiUrl: 'https://clinica-backend-n6ft.onrender.com/api/v1',
   keycloakUrl: 'https://clinica-keycloak.onrender.com'
 };
