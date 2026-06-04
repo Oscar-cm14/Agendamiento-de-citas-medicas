@@ -190,7 +190,7 @@
                 </td>
                 <td>
                   <select *ngIf="cita.status !== 'CANCELLED'"
-                          class="form-select form-select-sm fw-bold"
+                          class="form-select form-select-sm fw-bold status-select"
                           [ngClass]="{
                             'text-primary': cita.status === 'SCHEDULED',
                             'text-success': cita.status === 'COMPLETED',
@@ -212,7 +212,10 @@
                     title="Cancelar cita">
                      Cancelar
                   </button>
-                  <span *ngIf="cita.status !== 'SCHEDULED'" class="text-muted small">—</span>
+                  <span *ngIf="cita.status !== 'SCHEDULED' && cita.status !== 'CANCELLED'" class="text-muted small">—</span>
+                  <div *ngIf="cita.status === 'CANCELLED' && cita.cancellationReason" class="text-danger small mt-1 lh-sm">
+                    <strong>Motivo:</strong> {{ cita.cancellationReason }}
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -699,7 +702,7 @@
             </td>
             <td>
               <select *ngIf="c.status !== 'CANCELLED'"
-                      class="form-select form-select-sm fw-bold"
+                      class="form-select form-select-sm fw-bold status-select"
                       [ngClass]="{
                         'text-primary': c.status === 'SCHEDULED',
                         'text-success': c.status === 'COMPLETED',
@@ -717,12 +720,24 @@
               <span *ngIf="priorProcesandoId === c.id"
                 class="spinner-border spinner-border-sm text-danger">
               </span>
-              <button *ngIf="priorProcesandoId !== c.id"
-                class="btn btn-sm btn-outline-danger"
-                (click)="desmarcarPrioritaria(c)"
-                title="Quitar estado de prioritaria">
-                ✖ Quitar prioridad
-              </button>
+              <div class="d-flex gap-1 flex-wrap">
+                <button *ngIf="priorProcesandoId !== c.id"
+                  class="btn btn-sm btn-outline-warning text-dark"
+                  (click)="desmarcarPrioritaria(c)"
+                  title="Quitar estado de prioritaria">
+                  ✖ Quitar prioridad
+                </button>
+                <button
+                  *ngIf="c.status === 'SCHEDULED'"
+                  class="btn btn-sm btn-outline-danger"
+                  (click)="abrirCancelacion(c)"
+                  title="Cancelar cita">
+                   Cancelar
+                </button>
+              </div>
+              <div *ngIf="c.status === 'CANCELLED' && c.cancellationReason" class="text-danger small mt-1 lh-sm">
+                <strong>Motivo:</strong> {{ c.cancellationReason }}
+              </div>
             </td>
           </tr>
         </tbody>
