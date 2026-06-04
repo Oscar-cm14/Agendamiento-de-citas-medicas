@@ -133,10 +133,20 @@
                 <span *ngIf="!cita.priority" class="text-muted">—</span>
               </td>
               <td>
+                <select *ngIf="cita.status !== 'CANCELLED'"
+                        class="form-select form-select-sm fw-bold"
+                        [ngClass]="{
+                          'text-primary': cita.status === 'SCHEDULED',
+                          'text-success': cita.status === 'COMPLETED',
+                          'text-warning bg-dark': cita.status === 'NO_SHOW'
+                        }"
+                        [ngModel]="cita.status"
+                        (change)="cambiarEstadoCita(cita.id, $event, 'agenda')">
+                  <option value="SCHEDULED" class="text-dark bg-white">Programada</option>
+                  <option value="COMPLETED" class="text-dark bg-white">Atendida</option>
+                  <option value="NO_SHOW" class="text-dark bg-white">No asistió</option>
+                </select>
                 <span class="badge bg-secondary" *ngIf="cita.status === 'CANCELLED'">Cancelada</span>
-                <span class="badge bg-success"   *ngIf="cita.status === 'COMPLETED'">Atendida</span>
-                <span class="badge bg-primary"   *ngIf="cita.status === 'SCHEDULED'">Programada</span>
-                <span class="badge bg-warning text-dark" *ngIf="cita.status === 'NO_SHOW'">No asistió</span>
               </td>
               <td>
                 <span *ngIf="cita.priority && cita.priorityReason"
@@ -151,11 +161,6 @@
               </td>
               <td>
                 <div class="d-flex gap-1" *ngIf="cita.status === 'SCHEDULED'">
-                  <button class="btn btn-sm btn-success"
-                          (click)="marcarAtendida(cita.id)"
-                          [disabled]="procesandoCitaId === cita.id">
-                    ✓ Atendida
-                  </button>
                   <button class="btn btn-sm btn-outline-danger"
                           (click)="abrirCancelacion(cita)">
                     ✖ Cancelar
@@ -240,13 +245,20 @@
                   <span *ngIf="!cita.priority" class="text-muted">—</span>
                 </td>
                 <td>
-                  <span class="badge"
-                        [class.bg-success]="cita.status === 'SCHEDULED'"
-                        [class.bg-danger]="cita.status === 'CANCELLED'"
-                        [class.bg-secondary]="cita.status === 'COMPLETED'">
-                    {{ cita.status === 'SCHEDULED' ? 'Programada' :
-                       cita.status === 'CANCELLED' ? 'Cancelada' : 'Completada' }}
-                  </span>
+                  <select *ngIf="cita.status !== 'CANCELLED'"
+                          class="form-select form-select-sm fw-bold"
+                          [ngClass]="{
+                            'text-primary': cita.status === 'SCHEDULED',
+                            'text-success': cita.status === 'COMPLETED',
+                            'text-warning bg-dark': cita.status === 'NO_SHOW'
+                          }"
+                          [ngModel]="cita.status"
+                          (change)="cambiarEstadoCita(cita.id, $event, 'buscar')">
+                    <option value="SCHEDULED" class="text-dark bg-white">Programada</option>
+                    <option value="COMPLETED" class="text-dark bg-white">Atendida</option>
+                    <option value="NO_SHOW" class="text-dark bg-white">No asistió</option>
+                  </select>
+                  <span class="badge bg-secondary" *ngIf="cita.status === 'CANCELLED'">Cancelada</span>
                 </td>
                 <td>{{ cita.notes || '—' }}</td>
               </tr>
@@ -628,6 +640,7 @@
             <th>Paciente</th>
             <th>Fecha / Hora</th>
             <th>Motivo de prioridad</th>
+            <th>Estado</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -642,6 +655,22 @@
             <td><strong>{{ c.patientName }}</strong></td>
             <td>{{ c.date }} — {{ c.startTime }}</td>
             <td class="text-danger">{{ c.priorityReason || 'Sin motivo específico' }}</td>
+            <td>
+              <select *ngIf="c.status !== 'CANCELLED'"
+                      class="form-select form-select-sm fw-bold"
+                      [ngClass]="{
+                        'text-primary': c.status === 'SCHEDULED',
+                        'text-success': c.status === 'COMPLETED',
+                        'text-warning bg-dark': c.status === 'NO_SHOW'
+                      }"
+                      [ngModel]="c.status"
+                      (change)="cambiarEstadoCita(c.id, $event, 'prioritaria')">
+                <option value="SCHEDULED" class="text-dark bg-white">Programada</option>
+                <option value="COMPLETED" class="text-dark bg-white">Atendida</option>
+                <option value="NO_SHOW" class="text-dark bg-white">No asistió</option>
+              </select>
+              <span class="badge bg-secondary" *ngIf="c.status === 'CANCELLED'">Cancelada</span>
+            </td>
             <td>
               <span *ngIf="priorProcesandoId === c.id"
                     class="spinner-border spinner-border-sm text-danger"></span>

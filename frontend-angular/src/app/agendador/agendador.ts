@@ -650,8 +650,42 @@ export class Agendador implements OnInit {
   }
 
   etiquetaEstado(status: string): string {
-    return { SCHEDULED: 'Programada', COMPLETED: 'Atendida', CANCELLED: 'Cancelada', NO_SHOW: 'No asistida' }
-    [status] || status;
+    switch (status) {
+      case 'SCHEDULED': return 'Programada';
+      case 'COMPLETED': return 'Completada';
+      case 'CANCELLED': return 'Cancelada';
+      case 'NO_SHOW': return 'No asistió';
+      default: return status;
+    }
+  }
+
+  cambiarEstadoCita(citaId: number, event: any, contexto: 'buscar' | 'reagendar' | 'prioritaria' = 'buscar') {
+    const nuevoEstado = event.target.value;
+    if (!confirm('¿Confirma cambiar el estado de la cita a ' + this.etiquetaEstado(nuevoEstado) + '?')) {
+      if (contexto === 'buscar') this.buscarCitas();
+      else if (contexto === 'reagendar') this.reagBuscarCitas();
+      else if (contexto === 'prioritaria') this.priorBuscarCitas();
+      return;
+    }
+    
+    this.http.patch(
+      `${this.apiUrl}/appointments/${citaId}/status`,
+      { status: nuevoEstado },
+      { headers: this.headers() }
+    ).subscribe({
+      next: () => {
+        alert('Estado actualizado correctamente.');
+        if (contexto === 'buscar') this.buscarCitas();
+        else if (contexto === 'reagendar') this.reagBuscarCitas();
+        else if (contexto === 'prioritaria') this.priorBuscarCitas();
+      },
+      error: (err) => {
+        alert('Error: ' + (err.error?.message || 'No se pudo actualizar el estado.'));
+        if (contexto === 'buscar') this.buscarCitas();
+        else if (contexto === 'reagendar') this.reagBuscarCitas();
+        else if (contexto === 'prioritaria') this.priorBuscarCitas();
+      }
+    });
   }
 
   onPriorEspecialidadChange() {

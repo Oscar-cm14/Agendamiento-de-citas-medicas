@@ -473,10 +473,17 @@
               <td>{{ cita.doctorName }}</td>
               <td>{{ cita.specialty }}</td>
               <td>
-                <span class="badge" [class.bg-warning]="cita.status === 'PENDING'" 
-                      [class.bg-success]="cita.status === 'CONFIRMED'"
-                      [class.bg-secondary]="cita.status === 'CANCELLED'">
-                  {{ cita.status }}
+                <span
+                  class="badge"
+                  [class.bg-primary]="cita.status === 'SCHEDULED'"
+                  [class.bg-danger]="cita.status === 'CANCELLED'"
+                  [class.bg-success]="cita.status === 'COMPLETED'"
+                  [class.bg-warning]="cita.status === 'NO_SHOW'"
+                >
+                  {{ cita.status === 'SCHEDULED' ? 'Programada' :
+                     cita.status === 'CANCELLED' ? 'Cancelada' :
+                     cita.status === 'COMPLETED' ? 'Completada' :
+                     cita.status === 'NO_SHOW' ? 'No asistió' : cita.status }}
                 </span>
               </td>
               <td>

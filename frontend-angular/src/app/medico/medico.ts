@@ -262,6 +262,49 @@ export class Medico implements OnInit {
     });
   }
 
+  etiquetaEstado(status: string): string {
+    switch (status) {
+      case 'SCHEDULED': return 'Programada';
+      case 'COMPLETED': return 'Atendida';
+      case 'CANCELLED': return 'Cancelada';
+      case 'NO_SHOW': return 'No asistió';
+      default: return status;
+    }
+  }
+
+  cambiarEstadoCita(citaId: number, event: any, contexto: 'agenda' | 'buscar' | 'prioritaria' = 'agenda') {
+    const nuevoEstado = event.target.value;
+    if (!confirm('¿Confirma cambiar el estado de la cita a ' + this.etiquetaEstado(nuevoEstado) + '?')) {
+      if (contexto === 'agenda') this.cargarAgenda();
+      else if (contexto === 'buscar') this.buscarCitas();
+      else if (contexto === 'prioritaria') this.priorBuscarCitas();
+      return;
+    }
+    
+    this.http.patch(
+      `${this.apiUrl}/appointments/${citaId}/status`,
+      { status: nuevoEstado },
+      { headers: this.headers() }
+    ).subscribe({
+      next: () => {
+        this.mensajeAccion = '✅ Estado actualizado correctamente.';
+        this.cdr.detectChanges();
+        if (contexto === 'agenda') this.cargarAgenda();
+        else if (contexto === 'buscar') this.buscarCitas();
+        else if (contexto === 'prioritaria') this.priorBuscarCitas();
+        setTimeout(() => { this.mensajeAccion = ''; this.cdr.detectChanges(); }, 4000);
+      },
+      error: (err) => {
+        this.mensajeAccion = '❌ ' + (err.error?.message || 'Error al actualizar el estado.');
+        this.cdr.detectChanges();
+        if (contexto === 'agenda') this.cargarAgenda();
+        else if (contexto === 'buscar') this.buscarCitas();
+        else if (contexto === 'prioritaria') this.priorBuscarCitas();
+        setTimeout(() => { this.mensajeAccion = ''; this.cdr.detectChanges(); }, 5000);
+      }
+    });
+  }
+
   abrirCancelacion(cita: any) {
     this.citaCancelando = cita;
     this.motivoCancelacion = '';
