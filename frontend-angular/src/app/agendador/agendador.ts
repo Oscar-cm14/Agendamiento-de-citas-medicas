@@ -664,7 +664,7 @@ export class Agendador implements OnInit {
     if (!confirm('¿Confirma cambiar el estado de la cita a ' + this.etiquetaEstado(nuevoEstado) + '?')) {
       if (contexto === 'buscar') this.buscarCitas();
       else if (contexto === 'reagendar') this.reagBuscarCitas();
-      else if (contexto === 'prioritaria') this.priorBuscarCitas();
+      else if (contexto === 'prioritaria') this.buscarCitasPrioritarias();
       return;
     }
     
@@ -677,13 +677,13 @@ export class Agendador implements OnInit {
         alert('Estado actualizado correctamente.');
         if (contexto === 'buscar') this.buscarCitas();
         else if (contexto === 'reagendar') this.reagBuscarCitas();
-        else if (contexto === 'prioritaria') this.priorBuscarCitas();
+        else if (contexto === 'prioritaria') this.buscarCitasPrioritarias();
       },
       error: (err) => {
         alert('Error: ' + (err.error?.message || 'No se pudo actualizar el estado.'));
         if (contexto === 'buscar') this.buscarCitas();
         else if (contexto === 'reagendar') this.reagBuscarCitas();
-        else if (contexto === 'prioritaria') this.priorBuscarCitas();
+        else if (contexto === 'prioritaria') this.buscarCitasPrioritarias();
       }
     });
   }

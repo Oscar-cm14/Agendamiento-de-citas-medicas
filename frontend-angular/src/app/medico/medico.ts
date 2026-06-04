@@ -277,7 +277,7 @@ export class Medico implements OnInit {
     if (!confirm('¿Confirma cambiar el estado de la cita a ' + this.etiquetaEstado(nuevoEstado) + '?')) {
       if (contexto === 'agenda') this.cargarAgenda();
       else if (contexto === 'buscar') this.buscarCitas();
-      else if (contexto === 'prioritaria') this.priorBuscarCitas();
+      else if (contexto === 'prioritaria') this.buscarCitasPrioritarias();
       return;
     }
     
@@ -291,7 +291,7 @@ export class Medico implements OnInit {
         this.cdr.detectChanges();
         if (contexto === 'agenda') this.cargarAgenda();
         else if (contexto === 'buscar') this.buscarCitas();
-        else if (contexto === 'prioritaria') this.priorBuscarCitas();
+        else if (contexto === 'prioritaria') this.buscarCitasPrioritarias();
         setTimeout(() => { this.mensajeAccion = ''; this.cdr.detectChanges(); }, 4000);
       },
       error: (err) => {
@@ -299,7 +299,7 @@ export class Medico implements OnInit {
         this.cdr.detectChanges();
         if (contexto === 'agenda') this.cargarAgenda();
         else if (contexto === 'buscar') this.buscarCitas();
-        else if (contexto === 'prioritaria') this.priorBuscarCitas();
+        else if (contexto === 'prioritaria') this.buscarCitasPrioritarias();
         setTimeout(() => { this.mensajeAccion = ''; this.cdr.detectChanges(); }, 5000);
       }
     });
