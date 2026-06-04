@@ -12,10 +12,15 @@ import { Router , RouterLink } from '@angular/router';
 import { ChangeDetectorRef } from '@angular/core';
 import { environment } from '../../environments/environment';
 
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatNativeDateModule } from '@angular/material/core';
+
 @Component({
   selector: 'app-agendar-cita',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule, RouterLink, MatDatepickerModule, MatInputModule, MatFormFieldModule, MatNativeDateModule],
   templateUrl: './agendar-cita.html'
 })
 export class AgendarCita implements OnInit {
@@ -69,7 +74,12 @@ export class AgendarCita implements OnInit {
 
   minDate = new Date();
 
-  festivosColombiaStr: string[] = [];
+  festivosColombiaStr: string[] = [
+    '2024-01-01', '2024-01-08', '2024-03-25', '2024-03-28', '2024-03-29', '2024-05-01', '2024-05-13', '2024-06-03', '2024-06-10', '2024-07-01', '2024-08-07', '2024-08-19', '2024-10-14', '2024-11-04', '2024-11-11', '2024-12-08', '2024-12-25',
+    '2025-01-01', '2025-01-06', '2025-03-24', '2025-04-17', '2025-04-18', '2025-05-01', '2025-06-02', '2025-06-23', '2025-06-30', '2025-07-20', '2025-08-07', '2025-08-18', '2025-10-13', '2025-11-03', '2025-11-17', '2025-12-08', '2025-12-25'
+  ];
+
+  fechaObj: Date | null = null;
 
   medicoDetalle: any = null;
 
@@ -1044,6 +1054,38 @@ get especialidadesPermitidas() {
 
   return this.especialidades;
 }
+
+  formatDateStr(d: Date): string {
+    if (!d) return '';
+    const year = d.getFullYear();
+    const month = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
+  }
+
+  dateFilter = (d: Date | null): boolean => {
+    if (!d) return false;
+    const day = d.getDay();
+    if (day === 0 || day === 6) return false;
+    const dateString = this.formatDateStr(d);
+    if (this.festivosColombiaStr.includes(dateString)) return false;
+    if (this.doctorWorkingDays.length > 0) {
+      const daysMap = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      if (!this.doctorWorkingDays.includes(daysMap[day])) return false;
+    }
+    return true;
+  };
+
+  dateClass = (d: Date): string => {
+    const dateString = this.formatDateStr(d);
+    return this.festivosColombiaStr.includes(dateString) ? 'holiday-date' : '';
+  };
+
+  onFechaObjChange() {
+    this.fecha = this.fechaObj ? this.formatDateStr(this.fechaObj) : '';
+    if (this.fecha) this.buscarFranjas();
+  }
+
 }
 
 

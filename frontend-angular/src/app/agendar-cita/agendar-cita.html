@@ -291,12 +291,19 @@
           </label>
 
           
-          <input
-            type="date"
-            class="form-control"
-            [(ngModel)]="fecha"
-            (change)="buscarFranjas()"
-          >
+          <mat-form-field appearance="outline" class="w-100" style="background-color: white;">
+            <mat-label>Seleccione una fecha</mat-label>
+            <input 
+              matInput 
+              [matDatepicker]="picker"
+              [matDatepickerFilter]="dateFilter"
+              [min]="minDate"
+              [(ngModel)]="fechaObj"
+              (dateChange)="onFechaObjChange()"
+              readonly>
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker [dateClass]="dateClass"></mat-datepicker>
+          </mat-form-field>
 
         </div>
 
